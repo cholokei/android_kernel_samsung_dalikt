@@ -10,6 +10,16 @@ config SENSORS_LIS3LV02D
 	select INPUT_POLLDEV
 	default n
 
+menuconfig MISC_DEVICES
+	bool "Misc devices"
+	---help---
+	  Say Y here to get to see options for device drivers from various
+	  different categories. This option alone does not add any kernel code.
+
+	  If you say N, all options in this submenu will be skipped and disabled.
+
+if MISC_DEVICES
+
 config AD525X_DPOT
 	tristate "Analog Devices Digital Potentiometers"
 	depends on (I2C || SPI) && SYSFS
@@ -394,6 +404,12 @@ config SENSORS_AK8975
 	  If you say yes here you get support for Asahi Kasei's
 	  orientation sensor AK8975.
 
+config USE_A2220_B
+	tristate "A2220_B Voice Processor Driver"
+	depends on I2C
+	help
+	  This option support audience A2220_B chip
+
 config EP93XX_PWM
 	tristate "EP93xx PWM support"
 	depends on ARCH_EP93XX
@@ -578,6 +594,20 @@ config TSPP
 	processing of MPEG transport streams from the main processor.
 	This can also be compiled as a loadable module.
 
+config SAMSUNG_JACK
+	bool "3.5 PI EAR_JACK driver for Samsung devices"
+	depends on INPUT
+	default n
+	---help---
+	  This is 3.5 PI EAR_JACK driver for Samsung devices.
+
+config SAMSUNG_EARJACK
+	bool "Modified 3.5 PI EAR_JACK driver for Samsung devices"
+	depends on INPUT
+	default n
+	---help---
+	  This is 3.5 PI EAR_JACK driver for Samsung devices.
+	  
 config HAPTIC_ISA1200
 	tristate "ISA1200 haptic support"
 	depends on I2C
@@ -642,6 +672,14 @@ config PMIC8058_XOADC
 	  PMIC8058. Driver interface to program registers of the ADC over
 	  AMUX channels, devices on programmable MPP's and xotherm.
 
+config TZCOM
+	tristate "Trustzone Communicator driver"
+	default n
+	help
+	  Provides a communication interface between userspace and
+	  TrustZone Operating Environment (TZBSP) using Secure Channel
+	  Manager (SCM) interface.
+
 config QSEECOM
 	tristate "Qualcomm Secure Execution Communicator driver"
 	help
@@ -681,6 +719,19 @@ config BU52031NVX_POUCHDETECT
 	help
 	  depends on BU52031NVX
 
+config SENSORS_K3DH
+	tristate "K3DH acceleration sensor support"
+	depends on I2C
+        default n
+	help
+	  Driver for STMicroelectronic K3DH accelerometer.
+
+config SEC_MISC
+	bool "Samsung CELOX series miscellaneous driver"
+	default n
+	---help---
+	  Samsung CELOX series miscellaneous driver
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
@@ -690,5 +741,18 @@ source "drivers/misc/lis3lv02d/Kconfig"
 source "drivers/misc/carma/Kconfig"
 source "drivers/misc/altera-stapl/Kconfig"
 source "drivers/misc/slimport_anx7808/Kconfig"
+
+menuconfig VIBETONZ
+        tristate "Vibetonz"
+        default m
+        help
+          Say Y to enable Vibetonz support.
+config STMPE811_ADC
+	bool "stmpe811 adc driver"
+	default n
+	help
+	  stmpe811 adc driver
+          
+endif # MISC_DEVICES
 
 endmenu
