@@ -279,6 +279,8 @@ static void debug_crash_modem_fn(struct work_struct *work)
 {
 	if (reset_modem == 1)
 		smsm_reset_modem(SMSM_RESET);
+	else if (reset_modem == 2)
+		subsystem_restart("lpass");
 
 	reset_modem = 0;
 	schedule_delayed_work(&debug_crash_modem_work, msecs_to_jiffies(1000));
