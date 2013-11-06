@@ -55,6 +55,10 @@ config TOUCHSCREEN_AD7877
 	  To compile this driver as a module, choose M here: the
 	  module will be called ad7877.
 
+config TOUCHSCREEN_AD7879
+	tristate
+	default n
+
 config TOUCHSCREEN_ATMEL_MAXTOUCH
        tristate "Atmel maXTouch based touchscreens"
        depends on I2C
@@ -122,6 +126,18 @@ config TOUCHSCREEN_AUO_PIXCIR
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called auo-pixcir-ts.
+
+config TOUCHSCREEN_ATMEL_MAXTOUCH
+       tristate "Atmel maXTouch based touchscreens"
+	depends on I2C
+       default n
+	help
+         Say Y here if you have an Atmel Maxtouch based touchscreen.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+         module will be called maXTouch.
 
 config TOUCHSCREEN_BITSY
 	tristate "Compaq iPAQ H3600 (Bitsy) touchscreen"
@@ -318,6 +334,19 @@ config TOUCHSCREEN_WACOM_W8001
 	  To compile this driver as a module, choose M here: the
 	  module will be called wacom_w8001.
 
+config EPEN_WACOM_G5SP
+	tristate "Wacom G5SP penabled i2c touchscreen"
+	depends on SERIO
+	help
+	  Say Y here if you have an Wacom G5SP penabled i2c touchscreen
+	  connected to your system.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called wacom_G5SP.
+
+
 config TOUCHSCREEN_LPC32XX
 	tristate "LPC32XX touchscreen controller"
 	depends on ARCH_LPC32XX
@@ -451,6 +480,28 @@ config TOUCHSCREEN_MSM
 	  Say Y here if you have a 4-wire resistive touchscreen panel
 	  connected to the TSSC touchscreen controller on a
 	  Qualcomm MSM/QSD based SoC.
+
+config TOUCHSCREEN_QT602240
+	tristate "QT602240 I2C Touchscreen"
+	depends on I2C
+	help
+	  Say Y here if you have the AT42QT602240/ATMXT224 I2C touchscreen
+	  connected to your system.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called qt602240_ts.
+
+config TOUCHSCREEN_ATMEL_MXT540E
+	tristate "Atmel MXT540E Touchscreen Interface"
+	depends on I2C
+	default n
+	help
+		Say Y here if you want support for atmel_MXT540E touchscreen controllers.
+		
+		To compile this driver as a module, choose M here: the
+		module will be called mxt540e_q1.
 
 config TOUCHSCREEN_MIGOR
 	tristate "Renesas MIGO-R touchscreen"
@@ -1007,5 +1058,30 @@ config TOUCHSCREEN_SYNAPTICS_DSX_FW_UPDATE
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called synaptics_dsx_fw_update.
+
+config TOUCHSCREEN_MELFAS
+	tristate "MELFAS touchscreen driver"
+	depends on I2C
+	help	  
+   	  Say Y here if you have a MELFAS touchscreen.
+   	  
+   	  If unsure, say N.
+
+config EPEN_WACOM_G5SP
+	tristate "WACOM I2C Touchscreen"
+	depends on I2C
+	help
+	  Say Y here if you have the WACOM touchscreen
+	  connected to your system.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called Wacom_w8001.
+
+config SHAPE_TOUCH
+	bool "shape touch feature for Atmel TSP drivers"
+	default n
+	depends on TOUCHSCREEN_ATMEL_MXT540E
 
 endif
