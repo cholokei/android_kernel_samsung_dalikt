@@ -37,7 +37,7 @@
 #include <linux/spi/spi.h>
 #include <linux/input/tdisc_shinetsu.h>
 #include <linux/input/cy8c_ts.h>
-#include <linux/cyttsp.h>
+#include <linux/cyttsp-qc.h>
 #include <linux/i2c/isa1200.h>
 #include <linux/dma-mapping.h>
 #include <linux/i2c/bq27520.h>
@@ -140,7 +140,7 @@
 #include "devices-msm8x60.h"
 #include <mach/cpuidle.h>
 #include "pm.h"
-#include "mpm.h"
+#include <mach/mpm.h>
 #include "spm.h"
 #include "rpm_log.h"
 #include "timer.h"
