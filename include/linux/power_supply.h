@@ -82,6 +82,12 @@ enum {
 	POWER_SUPPLY_SCOPE_DEVICE,
 };
 
+// for SAMSUNG OTG
+enum {
+	POWER_SUPPLY_CAPACITY_OTG_ENABLE = 0,
+	POWER_SUPPLY_CAPACITY_OTG_DISABLE,
+};
+
 enum power_supply_property {
 	/* Properties of type `int' */
 	POWER_SUPPLY_PROP_STATUS = 0,
@@ -125,6 +131,8 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_TIME_TO_FULL_AVG,
 	POWER_SUPPLY_PROP_TYPE, /* use power_supply.type instead */
 	POWER_SUPPLY_PROP_SCOPE,
+	POWER_SUPPLY_PROP_OTG,    // for SAMSUNG OTG	
+	POWER_SUPPLY_PROP_CURRENT_ADJ, /* for SAMSUNG Charging */
 	/* Properties of type `const char *' */
 	POWER_SUPPLY_PROP_MODEL_NAME,
 	POWER_SUPPLY_PROP_MANUFACTURER,
@@ -140,6 +148,9 @@ enum power_supply_type {
 	POWER_SUPPLY_TYPE_USB_DCP,	/* Dedicated Charging Port */
 	POWER_SUPPLY_TYPE_USB_CDP,	/* Charging Downstream Port */
 	POWER_SUPPLY_TYPE_USB_ACA,	/* Accessory Charger Adapters */
+	POWER_SUPPLY_TYPE_MISC,
+	POWER_SUPPLY_TYPE_CARDOCK,
+	POWER_SUPPLY_TYPE_UARTOFF,
 };
 
 union power_supply_propval {
