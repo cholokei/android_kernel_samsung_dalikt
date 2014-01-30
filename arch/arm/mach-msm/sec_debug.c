@@ -29,6 +29,8 @@
 #include <linux/seq_file.h>
 // #include <linux/smp_lock.h>
 #include <mach/sec_switch.h>
+#include <linux/module.h>
+#include <mach/restart.h>
 
 #define RESTART_REASON_ADDR 0x65C
 
@@ -572,7 +574,7 @@ void sec_debug_hw_reset(void)
 
 	outer_flush_all();
 
-	arch_reset(0, "sec_debug_hw_reset");
+	msm_restart(0, "sec_debug_hw_reset");
 
 	while (1) ;
 }
@@ -596,7 +598,7 @@ static int sec_debug_panic_handler(struct notifier_block *nb,
 
 			flush_cache_all();
 			outer_flush_all();
-			arch_reset(0, "sec_debug_comm_dump");
+			msm_restart(0, "sec_debug_comm_dump");
 
 			while (1) ;
 		}

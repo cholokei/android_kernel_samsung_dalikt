@@ -297,8 +297,8 @@ void msm_restart(char mode, const char *cmd)
 		writel(0x6d63c421, restart_reason);
 		goto reset;
 #endif /* CONFIG_LGE_CRASH_HANDLER */
-#endif /* CONFIG_SEC_DEBUG */
 	}
+#endif /* CONFIG_SEC_DEBUG */
 
 	#if 0 /* onlyjazz.ef24 : intentionally remove it */
 	/* Kill download mode if master-kill switch is set */
@@ -306,7 +306,7 @@ void msm_restart(char mode, const char *cmd)
 		set_dload_mode(0);
 	#endif /* onlyjazz.ef24 : intentionally remove it */
 
-#endif
+#endif /* CONFIG_MSM_DLOAD_MODE */
 
 	printk(KERN_NOTICE "Going down for restart now\n");
 
@@ -333,13 +333,11 @@ void msm_restart(char mode, const char *cmd)
 			__raw_writel(RESTART_RECOVERY_MODE, restart_reason);
 		} else if (!strncmp(cmd, "download", 8)) {
 			unsigned long code=0;
-			error = strict_strtoul(cmd + 8, 16, &code);
-			code = code & 0xff;
+			code = simple_strtoul(cmd + 8, NULL, 16) & 0xff;
 			__raw_writel(RESTART_HOMEDOWN_MODE + code, restart_reason);
 		} else if (!strncmp(cmd, "oem-", 4)) {
 			unsigned long code;
-			error = strict_strtoul(cmd + 4, 16, &code);
-			code = code & 0xff;
+			code = simple_strtoul(cmd + 4, NULL, 16) & 0xff;
 			__raw_writel(0x6f656d00 | code, restart_reason);
 		} else if (!strncmp(cmd, "sec_debug_hw_reset", 18)) {
 			__raw_writel(0x776655ee, restart_reason);

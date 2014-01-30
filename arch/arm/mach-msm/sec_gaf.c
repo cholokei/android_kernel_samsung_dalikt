@@ -9,6 +9,17 @@
 #include <linux/fs.h>
 #include <linux/mount.h>
 #include <asm/pgtable.h>
+#include <linux/kernel_stat.h>
+#ifndef arch_irq_stat_cpu
+#define arch_irq_stat_cpu(cpu) 0
+#endif
+#ifndef arch_irq_stat
+#define arch_irq_stat() 0
+#endif
+#ifndef arch_idle_time
+#define arch_idle_time(cpu) 0
+#endif
+#include "../../../fs/mount.h"
 
 static struct GAForensicINFO {
 	unsigned short ver;
@@ -115,9 +126,9 @@ static struct GAForensicINFO {
 	.dentry_struct_d_parent = offsetof(struct dentry, d_parent),
 	.dentry_struct_d_name = offsetof(struct dentry, d_name),
 	.qstr_struct_name = offsetof(struct qstr, name),
-	.vfsmount_struct_mnt_mountpoint = offsetof(struct vfsmount, mnt_mountpoint),
+	.vfsmount_struct_mnt_mountpoint = offsetof(struct mount, mnt_mountpoint),
 	.vfsmount_struct_mnt_root = offsetof(struct vfsmount, mnt_root),
-	.vfsmount_struct_mnt_parent = offsetof(struct vfsmount, mnt_parent),
+	.vfsmount_struct_mnt_parent = offsetof(struct mount, mnt_parent),
 	.pgdir_shift = PGDIR_SHIFT,
 	.ptrs_per_pte = PTRS_PER_PTE,
 	.phys_offset = PHYS_OFFSET,
@@ -270,20 +281,7 @@ void dump_all_task_info(void)
     
 	printk( KERN_INFO " -----------------------------------------------------------------------------------\n" );
 }
- 
- 
-#include <linux/kernel_stat.h>
- 
-#ifndef arch_irq_stat_cpu
-#define arch_irq_stat_cpu(cpu) 0
-#endif
-#ifndef arch_irq_stat
-#define arch_irq_stat() 0
-#endif
-#ifndef arch_idle_time
-#define arch_idle_time(cpu) 0
-#endif
- 
+
 void dump_cpu_stat(void)
 {
 	int i, j;
@@ -297,24 +295,20 @@ void dump_cpu_stat(void)
 	unsigned int per_irq_sum;
 	 
 	user = nice = system = idle = iowait =
-	irq = softirq = steal = cputime64_zero;
-	guest = guest_nice = cputime64_zero;
+	irq = softirq = steal = 0;
+	guest = guest_nice = 0;
 	getboottime(&boottime);
 	jif = boottime.tv_sec;
 	 
 	for_each_possible_cpu(i) {
-		user = cputime64_add(user, kstat_cpu(i).cpustat.user);
-		nice = cputime64_add(nice, kstat_cpu(i).cpustat.nice);
-		system = cputime64_add(system, kstat_cpu(i).cpustat.system);
-		idle = cputime64_add(idle, kstat_cpu(i).cpustat.idle);
-		idle = cputime64_add(idle, arch_idle_time(i));
-		iowait = cputime64_add(iowait, kstat_cpu(i).cpustat.iowait);
-		irq = cputime64_add(irq, kstat_cpu(i).cpustat.irq);
-		softirq = cputime64_add(softirq, kstat_cpu(i).cpustat.softirq);
-		//steal = cputime64_add(steal, kstat_cpu(i).cpustat.steal);
-		//guest = cputime64_add(guest, kstat_cpu(i).cpustat.guest);
-		//guest_nice = cputime64_add(guest_nice,
-		//        kstat_cpu(i).cpustat.guest_nice);
+		user += kcpustat_cpu(i).cpustat[CPUTIME_USER];
+		nice += kcpustat_cpu(i).cpustat[CPUTIME_NICE];
+		system += kcpustat_cpu(i).cpustat[CPUTIME_SYSTEM];
+		idle += kcpustat_cpu(i).cpustat[CPUTIME_IDLE];
+		idle += arch_idle_time(i);
+		iowait += kcpustat_cpu(i).cpustat[CPUTIME_IOWAIT];
+		irq += kcpustat_cpu(i).cpustat[CPUTIME_IRQ];
+		softirq += kcpustat_cpu(i).cpustat[CPUTIME_SOFTIRQ];
 		for_each_irq_nr(j) {
 			sum += kstat_irqs_cpu(j, i);
 		}
@@ -339,27 +333,25 @@ void dump_cpu_stat(void)
 	(unsigned long long)cputime64_to_clock_t(iowait),
 	(unsigned long long)cputime64_to_clock_t(irq),
 	(unsigned long long)cputime64_to_clock_t(softirq),
-	(unsigned long long)0, //cputime64_to_clock_t(steal),
-	(unsigned long long)0, //cputime64_to_clock_t(guest),
-	(unsigned long long)0);//cputime64_to_clock_t(guest_nice));
+	(unsigned long long)0,
+	(unsigned long long)0,
+	(unsigned long long)0);
 	printk(KERN_INFO " -----------------------------------------------------------------------------------\n" );
 	 
 	for_each_online_cpu(i) {
 		 
 		/* Copy values here to work around gcc-2.95.3, gcc-2.96 */
-		user = kstat_cpu(i).cpustat.user;
-		nice = kstat_cpu(i).cpustat.nice;
-		system = kstat_cpu(i).cpustat.system;
-		idle = kstat_cpu(i).cpustat.idle;
-		idle = cputime64_add(idle, arch_idle_time(i));
-		iowait = kstat_cpu(i).cpustat.iowait;
-		irq = kstat_cpu(i).cpustat.irq;
-		softirq = kstat_cpu(i).cpustat.softirq;
-		//steal = kstat_cpu(i).cpustat.steal;
-		//guest = kstat_cpu(i).cpustat.guest;
-		//guest_nice = kstat_cpu(i).cpustat.guest_nice;
-		printk(KERN_INFO " cpu %d   user:%llu  nice:%llu  system:%llu  idle:%llu  iowait:%llu  irq:%llu  softirq:%llu %llu %llu "
-		            "%llu\n",
+		user = kcpustat_cpu(i).cpustat[CPUTIME_USER];
+		nice = kcpustat_cpu(i).cpustat[CPUTIME_NICE];
+		system = kcpustat_cpu(i).cpustat[CPUTIME_SYSTEM];
+		idle = kcpustat_cpu(i).cpustat[CPUTIME_IDLE];
+		idle += arch_idle_time(i);
+		iowait = kcpustat_cpu(i).cpustat[CPUTIME_IOWAIT];
+		irq = kcpustat_cpu(i).cpustat[CPUTIME_IRQ];
+		softirq = kcpustat_cpu(i).cpustat[CPUTIME_SOFTIRQ];
+		printk(KERN_INFO " cpu%d user:%llu nice:%llu system:%llu"
+		"idle:%llu iowait:%llu  irq:%llu softirq:%llu %llu %llu "
+		"%llu\n",
 		i,
 		(unsigned long long)cputime64_to_clock_t(user),
 		(unsigned long long)cputime64_to_clock_t(nice),
@@ -368,9 +360,9 @@ void dump_cpu_stat(void)
 		(unsigned long long)cputime64_to_clock_t(iowait),
 		(unsigned long long)cputime64_to_clock_t(irq),
 		(unsigned long long)cputime64_to_clock_t(softirq),
-		(unsigned long long)0, //cputime64_to_clock_t(steal),
-		(unsigned long long)0, //cputime64_to_clock_t(guest),
-		(unsigned long long)0);//cputime64_to_clock_t(guest_nice));
+		(unsigned long long)0,
+		(unsigned long long)0,
+		(unsigned long long)0);
 	}
 	printk(KERN_INFO " -----------------------------------------------------------------------------------\n" );
 	 
