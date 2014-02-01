@@ -18,6 +18,7 @@
 */
 
 #include <linux/spi/spi.h>
+#include <linux/module.h>
 #include "tdmb.h"
 
 struct spi_device *spi_dmb;
