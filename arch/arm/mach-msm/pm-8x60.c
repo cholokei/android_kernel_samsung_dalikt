@@ -41,6 +41,9 @@
 #ifdef CONFIG_VFP
 #include <asm/vfp.h>
 #endif
+#ifdef CONFIG_SEC_DEBUG
+#include <mach/sec_debug.h>
+#endif
 
 #include "acpuclock.h"
 #include "clock.h"
@@ -884,6 +887,10 @@ int msm_pm_idle_enter(enum msm_pm_sleep_mode sleep_mode)
 
 	time = ktime_to_ns(ktime_get());
 
+#ifdef CONFIG_SEC_DEBUG_POWERCOLLAPSE_LOG
+	sec_debug_powercollapse_log(1, (unsigned int)sleep_mode);
+#endif
+
 	switch (sleep_mode) {
 	case MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT:
 		msm_pm_swfi();
@@ -946,6 +953,10 @@ int msm_pm_idle_enter(enum msm_pm_sleep_mode sleep_mode)
 		__WARN();
 		goto cpuidle_enter_bail;
 	}
+
+#ifdef CONFIG_SEC_DEBUG_POWERCOLLAPSE_LOG
+	sec_debug_powercollapse_log(2, (unsigned int)sleep_mode);
+#endif
 
 	time = ktime_to_ns(ktime_get()) - time;
 	msm_pm_add_stat(exit_stat, time);
