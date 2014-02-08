@@ -170,46 +170,6 @@ struct max17040_chip {
 	int full_soc;
 };
 
-static int max17040_get_property(struct power_supply *psy,
-			    enum power_supply_property psp,
-			    union power_supply_propval *val)
-{
-	struct max17040_chip *chip = container_of(psy,
-				struct max17040_chip, battery);
-
-	switch (psp) {
-	case POWER_SUPPLY_PROP_STATUS:
-		val->intval = chip->status;
-		break;
-	case POWER_SUPPLY_PROP_ONLINE:
-		val->intval = chip->online;
-		break;
-	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
-		max17040_get_vcell(chip->client);
-		val->intval = chip->vcell;
-		break;
-	case POWER_SUPPLY_PROP_CAPACITY:
-		switch (val->intval) {
-		case 0:	/* normal soc */
-			val->intval = chip->soc;
-			break;
-		case 1: /* raw soc */
-			val->intval = chip->raw_soc;
-			break;
-		case 2: /* rcomp */
-			val->intval = chip->rcomp;
-			break;
-		case 3: /* full soc */
-			val->intval = chip->full_soc;
-			break;
-		}
-		break;
-	default:
-		return -EINVAL;
-	}
-	return 0;
-}
-
 #ifdef FG_MAX17048_ENABLED
 static int max17048_read_word_reg(struct i2c_client *client, int reg)
 {
@@ -265,28 +225,7 @@ static int max17040_read_reg(struct i2c_client *client, int reg)
 }
 #endif
 
-static void max17040_reset(struct i2c_client *client)
-{
-	struct max17040_chip *chip = i2c_get_clientdata(client);
-
-	pr_info("%s :\n", __func__);
-
-	/* POR : CMD,5400h */
-	max17040_write_reg(client, MAX17040_CMD_MSB, 0x54);
-	max17040_write_reg(client, MAX17040_CMD_LSB, 0x00);
-	msleep(300);
-
-	max17040_set_rcomp(client, chip->new_rcomp);
-	chip->rcomp = max17040_get_rcomp(client);
-
-	/* Quick Start : MODE,4000h : TBT */
-	/*
-	max17040_write_reg(client, MAX17040_MODE_MSB, 0x40);
-	max17040_write_reg(client, MAX17040_MODE_LSB, 0x00);
-	*/
-}
-
-extern int max17040_get_vcell(struct i2c_client *client) // by cholokei: static void -> extern int
+static void max17040_get_vcell(struct i2c_client *client)
 {
 	struct max17040_chip *chip = i2c_get_clientdata(client);
 	u8 msb;
@@ -476,6 +415,27 @@ static void max17040_set_rcomp(struct i2c_client *client, u16 new_rcomp)
 						swab16(new_rcomp));
 
 	mutex_unlock(&chip->mutex);
+}
+
+static void max17040_reset(struct i2c_client *client)
+{
+	struct max17040_chip *chip = i2c_get_clientdata(client);
+
+	pr_info("%s :\n", __func__);
+
+	/* POR : CMD,5400h */
+	max17040_write_reg(client, MAX17040_CMD_MSB, 0x54);
+	max17040_write_reg(client, MAX17040_CMD_LSB, 0x00);
+	msleep(300);
+
+	max17040_set_rcomp(client, chip->new_rcomp);
+	chip->rcomp = max17040_get_rcomp(client);
+
+	/* Quick Start : MODE,4000h : TBT */
+	/*
+	max17040_write_reg(client, MAX17040_MODE_MSB, 0x40);
+	max17040_write_reg(client, MAX17040_MODE_LSB, 0x00);
+	*/
 }
 
 static void max17040_adjust_fullsoc(struct i2c_client *client)
@@ -698,6 +658,46 @@ static void max17040_rcomp_update(struct i2c_client *client, int temp)
 }
 #endif
 
+static int max17040_get_property(struct power_supply *psy,
+			    enum power_supply_property psp,
+			    union power_supply_propval *val)
+{
+	struct max17040_chip *chip = container_of(psy,
+				struct max17040_chip, battery);
+
+	switch (psp) {
+	case POWER_SUPPLY_PROP_STATUS:
+		val->intval = chip->status;
+		break;
+	case POWER_SUPPLY_PROP_ONLINE:
+		val->intval = chip->online;
+		break;
+	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+		max17040_get_vcell(chip->client);
+		val->intval = chip->vcell;
+		break;
+	case POWER_SUPPLY_PROP_CAPACITY:
+		switch (val->intval) {
+		case 0:	/* normal soc */
+			val->intval = chip->soc;
+			break;
+		case 1: /* raw soc */
+			val->intval = chip->raw_soc;
+			break;
+		case 2: /* rcomp */
+			val->intval = chip->rcomp;
+			break;
+		case 3: /* full soc */
+			val->intval = chip->full_soc;
+			break;
+		}
+		break;
+	default:
+		return -EINVAL;
+	}
+	return 0;
+}
+
 static int max17040_set_property(struct power_supply *psy,
 			    enum power_supply_property psp,
 			    const union power_supply_propval *val)
@@ -756,7 +756,7 @@ static int __devinit max17040_probe(struct i2c_client *client,
 {
 	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
 	struct max17040_chip *chip;
-	int ret;
+	int ret = 0;
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE))
 		return -EIO;
