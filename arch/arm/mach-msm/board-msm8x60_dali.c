@@ -13385,7 +13385,6 @@ static struct mmc_platform_data msm8x60_sdc4_data = {
 	.msmsdcc_fmax	= 48000000,
 	.nonremovable	= 0,
 	.mpm_sdiowakeup_int = MSM_MPM_PIN_SDC4_DAT1,
-	.cfg_mpm_sdiowakeup = msm_sdcc_cfg_mpm_sdiowakeup,
 	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
 };
 #endif
