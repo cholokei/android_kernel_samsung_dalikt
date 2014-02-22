@@ -79,7 +79,6 @@ obj-y += tspdrv/
 obj-$(CONFIG_BU52031NVX) += pm8xxx-cradle.o
 obj-$(CONFIG_SLIMPORT_ANX7808)	+= slimport_anx7808/
 
-obj-$(CONFIG_VIBETONZ) += vibetonz/
 ifeq ($(CONFIG_USE_A2220_B),y)
 obj-$(CONFIG_VP_A2220) += a2220b.o
 else
