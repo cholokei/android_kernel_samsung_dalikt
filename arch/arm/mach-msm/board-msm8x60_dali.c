@@ -9440,7 +9440,6 @@ static struct platform_device qseecom_device = {
 	},
 };
 
-struct platform_device msm_device_tz_log;
 static struct platform_device *surf_devices[] __initdata = {
 	&msm8x60_device_acpuclk,
 	&msm_device_smd,
@@ -9633,7 +9632,7 @@ static struct platform_device *surf_devices[] __initdata = {
 	&ion_dev,
 #endif
 	&msm8660_device_watchdog,
-	&msm_device_tz_log,
+//	&msm_device_tz_log, // fix for now - by cholokei
 	&msm_rtb_device,
 	&msm8660_iommu_domain_device,
 #if defined (CONFIG_SAMSUNG_JACK) || defined (CONFIG_SAMSUNG_EARJACK)
