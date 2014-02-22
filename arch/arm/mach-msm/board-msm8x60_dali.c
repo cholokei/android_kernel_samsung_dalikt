@@ -9440,6 +9440,7 @@ static struct platform_device qseecom_device = {
 	},
 };
 
+struct platform_device msm_device_tz_log;
 static struct platform_device *surf_devices[] __initdata = {
 	&msm8x60_device_acpuclk,
 	&msm_device_smd,

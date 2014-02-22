@@ -807,7 +807,7 @@ static struct kgsl_device_platform_data kgsl_3d0_pdata = {
 	.init_level = 0,
 	.num_levels = 5,
 	.set_grp_async = NULL,
-	.idle_timeout = HZ/5, // HZ/5 -> HZ/15, changed for low power consumption - need to check by cholokei
+	.idle_timeout = HZ/5,
 	.nap_allowed = true,
 	.clk_map = KGSL_CLK_CORE | KGSL_CLK_IFACE | KGSL_CLK_MEM_IFACE,
 #ifdef CONFIG_MSM_BUS_SCALING
@@ -2094,15 +2094,13 @@ struct platform_device msm_device_smd = {
 };
 
 static struct msm_watchdog_pdata msm_watchdog_pdata = {
-/*
 #ifdef CONFIG_SEC_DEBUG // msm_watchdog.c doesn't use boot command line.
 	.pet_time = 3000,
 	.bark_time = 15000,
 #else
-*/ // need to check by cholokei
 	.pet_time = 10000,
 	.bark_time = 11000,
-//#endif // need to check by cholokei
+#endif
 	.has_secure = true,
 	.base = MSM_TMR0_BASE + WDT0_OFFSET,
 };
