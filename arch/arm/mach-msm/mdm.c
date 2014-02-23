@@ -119,8 +119,11 @@ static int charm_panic_prep(struct notifier_block *this,
 
 	CHARM_DBG("%s: setting AP2MDM_ERRFATAL high for a non graceful reset\n",
 			 __func__);
+
+#if 0	/* onlyjazz.el20 : remove pm8058_stay_on also in ICS upgrade version in order to avoid por confusion */
 	if (get_restart_level() == RESET_SOC)
 		pm8xxx_stay_on();
+#endif
 
 	charm_disable_irqs();
 	gpio_set_value(AP2MDM_ERRFATAL, 1);
@@ -135,6 +138,16 @@ static int charm_panic_prep(struct notifier_block *this,
 		pr_err("%s: MDM2AP_STATUS never went low\n", __func__);
 	return NOTIFY_DONE;
 }
+
+#ifdef CONFIG_SEC_DEBUG
+void charm_assert_panic(void)
+{
+	CHARM_DBG("%s: setting AP2MDM_ERRFATAL high\n", __func__);
+	gpio_set_value(AP2MDM_ERRFATAL, 1);
+	gpio_set_value(AP2MDM_WAKEUP, 1); // Wake up the MDM if sleeping to avoid MDM dump corruption
+	mdelay(20);
+}
+#endif
 
 static struct notifier_block charm_panic_blk = {
 	.notifier_call  = charm_panic_prep,
@@ -197,6 +210,21 @@ static long charm_modem_ioctl(struct file *filp, unsigned int cmd,
 			put_user(boot_type, (unsigned long __user *) arg);
 		INIT_COMPLETION(charm_needs_reload);
 		break;
+	case RESET_CHARM:
+		CHARM_DBG("%s: reset charm start\n", __func__);
+		gpio_direction_output(AP2MDM_KPDPWR_N, 0);
+		gpio_direction_output(AP2MDM_PMIC_RESET_N, 1);
+		/*
+		* Currently, there is a debounce timer on the charm PMIC. It is
+		* necessary to hold the AP2MDM_PMIC_RESET low for ~3.5 seconds
+		* for the reset to fully take place. Sleep here to ensure the
+		* reset has occured before the function exits.
+		*/
+		msleep(5000);
+		gpio_direction_output(AP2MDM_PMIC_RESET_N, 0);
+		gpio_direction_output(AP2MDM_KPDPWR_N, 1);
+		CHARM_DBG("%s: reset charm ok\n", __func__);
+		break;	
 	default:
 		pr_err("%s: invalid ioctl cmd = %d\n", __func__, _IOC_NR(cmd));
 		ret = -EINVAL;
@@ -237,8 +265,12 @@ static DECLARE_WORK(charm_status_work, charm_status_fn);
 static void charm_fatal_fn(struct work_struct *work)
 {
 	pr_info("Reseting the charm due to an errfatal\n");
+
+#if 0	/* onlyjazz.el20 : remove pm8058_stay_on also in ICS upgrade version in order to avoid por confusion */
 	if (get_restart_level() == RESET_SOC)
 		pm8xxx_stay_on();
+#endif
+
 	subsystem_restart_dev(charm_subsys);
 }
 
