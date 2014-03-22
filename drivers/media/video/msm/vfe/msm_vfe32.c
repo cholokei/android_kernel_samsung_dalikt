@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1223,24 +1223,24 @@ static int axi_reset(struct axi_ctrl_t *axi_ctrl,
 	struct msm_camera_vfe_params_t vfe_params)
 {
 	int rc = 0;
-        uint8_t halt_timeout = 30;
-        pr_info("%s E", __func__);
+	uint8_t halt_timeout = 30;
+	pr_info("%s E", __func__);
 
 	if (vfe_params.skip_reset) {
 		axi_reset_internal_variables(axi_ctrl, vfe_params);
 		return rc;
 	}
 
-       /*If overflow recovery is in progress, wait for it to complete*/
-       CDBG("%s: Waiting for overflow recovery to complete", __func__);
-       rc = wait_event_interruptible_timeout(
-               recovery_wait,
-               (atomic_read(&recovery_active) == 0),
-               msecs_to_jiffies(halt_timeout));
-       if (!rc)
-               pr_err("%s: Timeout while recovery in progress", __func__);
-       CDBG("%s: Done waiting for overflow recovery to complete", __func__);
-       axi_ctrl->share_ctrl->stop_issued = TRUE;
+	/*If overflow recovery is in progress, wait for it to complete*/
+	CDBG("%s: Waiting for overflow recovery to complete", __func__);
+	rc = wait_event_interruptible_timeout(
+		recovery_wait,
+		(atomic_read(&recovery_active) == 0),
+		msecs_to_jiffies(halt_timeout));
+	if (!rc)
+		pr_err("%s: Timeout while recovery in progress", __func__);
+	CDBG("%s: Done waiting for overflow recovery to complete", __func__);
+	axi_ctrl->share_ctrl->stop_issued = TRUE;
 
 	axi_global_reset_internal_variables(axi_ctrl);
 	/* disable all interrupts.  vfeImaskLocal is also reset to 0
@@ -1274,6 +1274,7 @@ static int axi_reset(struct axi_ctrl_t *axi_ctrl,
 	to the command register using the barrier */
 	msm_camera_io_w_mb(VFE_RESET_UPON_RESET_CMD,
 		axi_ctrl->share_ctrl->vfebase + VFE_GLOBAL_RESET);
+
 	pr_info("%s X", __func__);
 	return wait_for_completion_interruptible(
 			&axi_ctrl->share_ctrl->reset_complete);
@@ -3653,6 +3654,9 @@ static int vfe32_proc_general(
 
 		break;
 	default:
+		if (cmd->id < 0 || cmd->id > VFE_CMD_MAX)
+			return -EINVAL;
+
 		if (cmd->length != vfe32_cmd[cmd->id].length)
 			return -EINVAL;
 
@@ -5863,7 +5867,7 @@ static irqreturn_t vfe32_parse_irq(int irq_num, void *data)
 
 	qcmd->vfeInterruptStatus0 = irq.vfeIrqStatus0;
 	qcmd->vfeInterruptStatus1 = irq.vfeIrqStatus1;
-        if (atomic_read(&fault_recovery) &&
+	if (atomic_read(&fault_recovery) &&
 		!axi_ctrl->share_ctrl->stop_issued) {
 		printk("Start fault recovery\n");
 		vfe32_complete_reset(axi_ctrl);
@@ -6485,18 +6489,18 @@ void axi_abort(struct axi_ctrl_t *axi_ctrl)
 	int rc = 0;
 	uint8_t  axi_busy_flag = true;
 	unsigned long flags;
-       uint8_t halt_timeout = 30;
-       pr_info("%s E", __func__);
-       /*If overflow recovery is in progress, wait for it to complete*/
-       CDBG("%s: Waiting for overflow recovery to complete", __func__);
-       rc = wait_event_interruptible_timeout(
-               recovery_wait,
-               (atomic_read(&recovery_active) == 0),
-               msecs_to_jiffies(halt_timeout));
-       if (!rc)
-               pr_err("%s: Timeout while recovery in progress", __func__);
-       CDBG("%s: Done waiting for overflow recovery to complete", __func__);
-       axi_ctrl->share_ctrl->stop_issued = TRUE;
+	uint8_t halt_timeout = 30;
+	pr_info("%s E", __func__);
+	/*If overflow recovery is in progress, wait for it to complete*/
+	CDBG("%s: Waiting for overflow recovery to complete", __func__);
+	rc = wait_event_interruptible_timeout(
+		recovery_wait,
+		(atomic_read(&recovery_active) == 0),
+		msecs_to_jiffies(halt_timeout));
+	if (!rc)
+		pr_err("%s: Timeout while recovery in progress", __func__);
+	CDBG("%s: Done waiting for overflow recovery to complete", __func__);
+	axi_ctrl->share_ctrl->stop_issued = TRUE;
 
 	/* axi halt command. */
 	spin_lock_irqsave(&axi_ctrl->share_ctrl->stop_flag_lock, flags);
@@ -7004,21 +7008,21 @@ void axi_stop(struct msm_cam_media_controller *pmctl,
 {
 	int rc = 0;
 	uint32_t reg_update = 0;
-	uint32_t halt_timeout = 30;
+	uint8_t halt_timeout = 30;
 	uint32_t vfe_mode =
 	axi_ctrl->share_ctrl->current_mode & ~(VFE_OUTPUTS_RDI0|
 		VFE_OUTPUTS_RDI1|VFE_OUTPUTS_RDI2);
 	pr_info("%s E", __func__);
-       /*If overflow recovery is in progress, wait for it to complete*/
+	/*If overflow recovery is in progress, wait for it to complete*/
 	CDBG("%s: Waiting for overflow recovery to complete", __func__);
-       rc = wait_event_interruptible_timeout(
-               recovery_wait,
-               (atomic_read(&recovery_active) == 0),
-               msecs_to_jiffies(halt_timeout));
-       if (!rc)
-               pr_err("%s: Timeout while recovery in progress", __func__);
-       CDBG("%s: Done waiting for overflow recovery to complete", __func__);
-       axi_ctrl->share_ctrl->stop_issued = TRUE;
+	rc = wait_event_interruptible_timeout(
+		recovery_wait,
+		(atomic_read(&recovery_active) == 0),
+		msecs_to_jiffies(halt_timeout));
+	if (!rc)
+		pr_err("%s: Timeout while recovery in progress", __func__);
+	CDBG("%s: Done waiting for overflow recovery to complete", __func__);
+	axi_ctrl->share_ctrl->stop_issued = TRUE;
 
 	switch (vfe_params.cmd_type) {
 	case AXI_CMD_PREVIEW:
