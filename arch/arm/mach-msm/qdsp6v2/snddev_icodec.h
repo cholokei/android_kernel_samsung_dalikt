@@ -13,7 +13,6 @@
 #ifndef __MACH_QDSP6V2_SNDDEV_ICODEC_H
 #define __MACH_QDSP6V2_SNDDEV_ICODEC_H
 #include <linux/mfd/msm-adie-codec.h>
-#include <mach/qdsp5v2/audio_def.h>
 #include <mach/pmic.h>
 
 struct snddev_icodec_data {
