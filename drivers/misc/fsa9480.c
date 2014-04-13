@@ -710,6 +710,91 @@ void fsa9480_otg_detach()
 
 EXPORT_SYMBOL(fsa9480_otg_detach);
 
+
+void fsa9480_manual_switching(int path)
+{
+	struct i2c_client *client = local_usbsw->client;
+	int value;
+	unsigned int data = 0;
+	int ret;
+
+	value = i2c_smbus_read_byte_data(client, FSA9480_REG_CTRL);
+	if (value < 0)
+		dev_err(&client->dev, "%s: err %d\n", __func__, value);
+
+	if ((value & ~CON_MANUAL_SW) !=
+			(CON_SWITCH_OPEN | CON_RAW_DATA | CON_WAIT))
+		return;
+
+	if (path == SWITCH_PORT_VAUDIO) {
+		if (HWversion ==VERSION_FSA9480)
+			data = SW_VAUDIO;
+		else
+			data = VAUDIO_9485;
+		
+		value &= ~CON_MANUAL_SW;
+	} else if (path ==  SWITCH_PORT_UART) {
+		data = SW_UART;
+		value &= ~CON_MANUAL_SW;
+	} else if (path ==  SWITCH_PORT_AUDIO) {
+		if (HWversion ==VERSION_FSA9480)
+			data = SW_AUDIO;
+		else
+			data = AUDIO_9485;
+		
+		value &= ~CON_MANUAL_SW;
+	} else if (path ==  SWITCH_PORT_USB) {
+		if (HWversion ==VERSION_FSA9480)
+			data = SW_DHOST;
+		else
+			data = DHOST_9485;
+		
+		value &= ~CON_MANUAL_SW;
+	} else if (path ==  SWITCH_PORT_AUTO) {
+		data = SW_AUTO;
+		value |= CON_MANUAL_SW;
+	} else if (path ==  SWITCH_PORT_USB_OPEN) {
+		data = SW_USB_OPEN;		
+		value &= ~CON_MANUAL_SW;
+	} else if (path ==  SWITCH_PORT_ALL_OPEN) {
+		data = SW_ALL_OPEN;
+		value &= ~CON_MANUAL_SW;
+	} else {
+		printk(KERN_DEBUG "%s: wrong path (%d)\n", __func__, path);
+		return;
+	}
+
+	local_usbsw->mansw = data;
+
+	// path for FTM sleep
+	if (path ==  SWITCH_PORT_ALL_OPEN) {
+		ret = i2c_smbus_write_byte_data(client, FSA9480_REG_MANUAL_OVERRIDES1, 0x0a);
+		if (ret < 0)
+			dev_err(&client->dev, "%s: err %d\n", __func__, ret);
+
+		ret = i2c_smbus_write_byte_data(client, FSA9480_REG_MANSW1, data);
+		if (ret < 0)
+			dev_err(&client->dev, "%s: err %d\n", __func__, ret);
+
+		ret = i2c_smbus_write_byte_data(client, FSA9480_REG_MANSW2, data);
+		if (ret < 0)
+			dev_err(&client->dev, "%s: err %d\n", __func__, ret);
+
+		ret = i2c_smbus_write_byte_data(client, FSA9480_REG_CTRL, value);
+		if (ret < 0)
+			dev_err(&client->dev, "%s: err %d\n", __func__, ret);	
+	} else {
+		ret = i2c_smbus_write_byte_data(client, FSA9480_REG_MANSW1, data);
+		if (ret < 0)
+			dev_err(&client->dev, "%s: err %d\n", __func__, ret);
+
+		ret = i2c_smbus_write_byte_data(client, FSA9480_REG_CTRL, value);
+		if (ret < 0)
+			dev_err(&client->dev, "%s: err %d\n", __func__, ret);
+	}
+
+}
+EXPORT_SYMBOL(fsa9480_manual_switching);
 #ifdef CONFIG_MHL_D3_SUPPORT
 int get_vbus_valid(void)
 {
