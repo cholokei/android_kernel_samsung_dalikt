@@ -511,21 +511,6 @@ void FSA9480_MhlTvOff(void)
 EXPORT_SYMBOL(FSA9480_MhlTvOff);
 #endif  //CONFIG_VIDEO_MHL_V1
 
-static ssize_t fsa9480_show_control(struct device *dev,
-				   struct device_attribute *attr,
-				   char *buf)
-{
-	struct fsa9480_usbsw *usbsw = dev_get_drvdata(dev);
-	struct i2c_client *client = usbsw->client;
-	int value;
-
-	value = i2c_smbus_read_byte_data(client, FSA9480_REG_CTRL);
-	if (value < 0)
-		dev_err(&client->dev, "%s: err %d\n", __func__, value);
-
-	return sprintf(buf, "CONTROL: %02x\n", value);
-}
-
 static int fsa9480_write_reg(struct i2c_client *client,
 		int reg, int value)
 {
@@ -670,13 +655,11 @@ static ssize_t fsa9480_set_manualsw(struct device *dev,
 	return count;
 }
 
-static DEVICE_ATTR(control, S_IRUGO, fsa9480_show_control, NULL);
 static DEVICE_ATTR(device, S_IRUGO, fsa9480_show_device, NULL);
 static DEVICE_ATTR(switch, S_IRUGO | S_IWUSR,
 		fsa9480_show_manualsw, fsa9480_set_manualsw);
 
 static struct attribute *fsa9480_attributes[] = {
-	&dev_attr_control.attr,
 	&dev_attr_device.attr,
 	&dev_attr_switch.attr,
 	NULL
@@ -686,74 +669,11 @@ static const struct attribute_group fsa9480_group = {
 	.attrs = fsa9480_attributes,
 };
 
-void fsa9480_otg_detach()
-{
-	// unsigned int value;
-	unsigned int data = 0;
-	int ret;
-	struct i2c_client *client = local_usbsw->client;
-
-	data=0x00;
-	ret = i2c_smbus_write_byte_data(client, FSA9480_REG_MANSW2, data);
-	if (ret < 0)
-		dev_info(&client->dev, "%s: err %d\n", __func__, ret);
-	data =SW_ALL_OPEN;
-	ret = i2c_smbus_write_byte_data(client, FSA9480_REG_MANSW1, data);
-	if (ret < 0)
-		dev_info(&client->dev, "%s: err %d\n", __func__, ret);
-
-	data=0x1A;
-	ret = i2c_smbus_write_byte_data(client, FSA9480_REG_CTRL, data);
-	if (ret < 0)
-		dev_info(&client->dev, "%s: err %d\n", __func__, ret);
-}
-
-EXPORT_SYMBOL(fsa9480_otg_detach);
-
-#ifdef CONFIG_MHL_D3_SUPPORT
-int get_vbus_valid(void)
-{
-	struct i2c_client *client = local_usbsw->client;
-	int ret;
-	ret = i2c_smbus_read_byte_data(client, 0x1d);
-	if (ret & 0x2) {
-		return 1;
-	}
-	return 0;
-}
-EXPORT_SYMBOL(get_vbus_valid);
-#endif
-
-static ssize_t fsa9480_reset(struct fsa9480_usbsw *usbsw, int reset)
-{
-	struct i2c_client *client = usbsw->client;
-	int ret;
-
-	if (reset > 0) {
-//		dev_info(&client->dev, "fsa9480 reset after delay 1000 msec.\n");
-//		mdelay(1000);
-		ret = i2c_smbus_write_byte_data(client,
-						FSA9480_REG_MANUAL_OVERRIDES1, 0x01);
-		if (ret < 0) {
-			dev_err(&client->dev, "cannot soft reset, err %d\n", ret);
-		} else
-			dev_info(&client->dev, "fsa9480_reset_control done!\n");
-	} else {
-		dev_info(&client->dev, "fsa9480_reset_control, but not reset_value!\n");
-	}
-
-	fsa9480_reg_init(usbsw);
-	return 0;
-}
-
 static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw, int intr)
 {
 	int val1, val2, ctrl;
 	struct fsa9480_platform_data *pdata = usbsw->pdata;
 	struct i2c_client *client = usbsw->client;
-#if defined(CONFIG_VIDEO_MHL_V2)
-	u8 mhl_ret = 0;
-#endif
 
 	val1 = fsa9480_read_reg(client, FSA9480_REG_DEV_T1);
 	val2 = fsa9480_read_reg(client, FSA9480_REG_DEV_T2);
@@ -794,126 +714,10 @@ static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw, int intr)
 				pdata->charger_cb(FSA9480_ATTACHED);
 		}
 
-		/* SAMSUNG OTG */
-		if (val1 & DEV_USB_OTG) {
-			if (pdata->otg_cb)
-				pdata->otg_cb(FSA9480_ATTACHED);
-			i2c_smbus_write_byte_data(client,
-						FSA9480_REG_MANSW1, 0x27);
-			i2c_smbus_write_byte_data(client,
-						FSA9480_REG_MANSW2, 0x02);
-			msleep(50);
-			i2c_smbus_write_byte_data(client,
-						FSA9480_REG_CTRL, 0x1a);
-		}
-
 		/* JIG */
 		if (val2 & DEV_T2_JIG_MASK) {
 			if (pdata->jig_cb)
 				pdata->jig_cb(FSA9480_ATTACHED);
-		}
-
-		/* Desk Dock */
-		if (val2 & DEV_AV) {
-#ifdef CONFIG_MHL_D3_SUPPORT
-                        if ((adc & 0x1F) == 0x1A) {
-                                pr_info("FSA Deskdock Attach\n");
-                                FSA9480_CheckAndHookAudioDock(USE_DESK_DOCK, 1);
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
-                                isDeskdockconnected = 1;
-				Dockconnected = 1;
-#endif
-                                i2c_smbus_write_byte_data(client,
-                                                FSA9480_REG_RESERVED_1D, 0x08);
-                        } else {
-#endif
-			if (HWversion==VERSION_FSA9485)	{
-				if (isDeskdockconnected && usedeskdock) {
-					printk(KERN_DEBUG "FSA MHL isDeskdockconnected\n");
-					return;
-				}
-			}
-#if defined(CONFIG_VIDEO_MHL_V1)
-			printk(KERN_DEBUG "FSA MHL Attach mhl_cable_status = %d \n", mhl_cable_status);
-			FSA9480_MhlSwitchSel(1);
-#elif defined(CONFIG_VIDEO_MHL_V2)
-			DisableFSA9480Interrupts();
-			if (!isDeskdockconnected) {
-				if(!sec_get_lpm_mode())
-					mhl_ret = mhl_onoff_ex(1);
-			}
-#ifndef CONFIG_MHL_D3_SUPPORT
-			if (mhl_ret != MHL_DEVICE) {
-				FSA9480_CheckAndHookAudioDock(USE_DESK_DOCK, 1);
-				isDeskdockconnected = 1;
-				Dockconnected = 1;
-			}
-#endif
-			EnableFSA9480Interrupts();
-#else
-			FSA9480_CheckAndHookAudioDock(USE_DESK_DOCK, 1);
-			if (pdata->deskdock_cb)
-				pdata->deskdock_cb(FSA9480_ATTACHED);
-
-			if (HWversion ==VERSION_FSA9480)
-				ret = i2c_smbus_write_byte_data(client,
-						FSA9480_REG_MANSW1, SW_AUDIO);
-			else
-				ret = i2c_smbus_write_byte_data(client,
-					FSA9480_REG_MANSW1, AUDIO_9485);
-
-			if (ret < 0)
-				dev_err(&client->dev,
-					"%s: err %d\n", __func__, ret);
-
-			ret = i2c_smbus_read_byte_data(client,
-					FSA9480_REG_CTRL);
-			if (ret < 0)
-				dev_err(&client->dev,
-					"%s: err %d\n", __func__, ret);
-
-			ret = i2c_smbus_write_byte_data(client,
-					FSA9480_REG_CTRL, ret & ~CON_MANUAL_SW);
-			if (ret < 0)
-				dev_err(&client->dev,
-					"%s: err %d\n", __func__, ret);
-#endif
-#ifdef CONFIG_MHL_D3_SUPPORT
-		}
-#endif
-		}
-		/* Car Dock */
-		if (val2 & DEV_JIG_UART_ON) {
-			if (pdata->cardock_cb)
-				pdata->cardock_cb(FSA9480_ATTACHED);
-
-			if (HWversion ==VERSION_FSA9480)
-				ret = i2c_smbus_write_byte_data(client,
-						FSA9480_REG_MANSW1, SW_AUDIO);
-			else
-				ret = i2c_smbus_write_byte_data(client,
-					FSA9480_REG_MANSW1, AUDIO_9485);
-			
-			if (ret < 0)
-				dev_err(&client->dev,
-					"%s: err %d\n", __func__, ret);
-		
-			ret = i2c_smbus_read_byte_data(client,
-					FSA9480_REG_CTRL);
-			if (ret < 0)
-				dev_err(&client->dev,
-					"%s: err %d\n", __func__, ret);
-		
-			ret = i2c_smbus_write_byte_data(client,
-				FSA9480_REG_CTRL, ret & ~CON_MANUAL_SW);
-			if (ret < 0)
-				dev_err(&client->dev,
-					"%s: err %d\n", __func__, ret);
-
-			usbsw->cardock_attached=1;
-		} else if (val2 & DEV_PPD) {
-			dev_info(&client->dev, "[jgk] DEV_PPD --> usbsw reset!!\n");
-			fsa9480_reset(usbsw, 1);
 		}
 	} else if (intr & INT_DETACH) {	/* Detached */
 		/* USB */
@@ -928,10 +732,6 @@ static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw, int intr)
 			usbsw->dev2 & DEV_T2_UART_MASK) {
 			if (pdata->uart_cb)
 				pdata->uart_cb(FSA9480_DETACHED);
-
-		// for uart jig
-			if (usbsw->dev2 & DEV_T2_UART_MASK)
-				pdata->jig_cb(FSA9480_DETACHED);
 		}
 
 		/* CHARGER */
@@ -940,111 +740,10 @@ static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw, int intr)
 				pdata->charger_cb(FSA9480_DETACHED);
 		}
 
-		/* SAMSUNG OTG */
-		if (usbsw->dev1 & DEV_USB_OTG) {
-			ret=i2c_smbus_write_byte_data(client, FSA9480_REG_CTRL, 0x1E); // switch auto
-			if (ret < 0)
-				dev_err(&client->dev,"%s: err %d\n", __func__, ret);
-		}
-
 		/* JIG */
 		if (usbsw->dev2 & DEV_T2_JIG_MASK) {
 			if (pdata->jig_cb)
 				pdata->jig_cb(FSA9480_DETACHED);
-		}
-
-		/* Desk Dock */
-		if (usbsw->dev2 & DEV_AV) {
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
-			if (HWversion==VERSION_FSA9485)
-			{
-				if (!isDeskdockconnected && usedeskdock) {
-					printk(KERN_DEBUG "FSA MHL isDeskdockdisconnected");
-					return;
-				}	
-			}
-#endif
-#if defined(CONFIG_VIDEO_MHL_V1)
-			printk(KERN_DEBUG "FSA MHL Detach\n");
-			FSA9480_MhlSwitchSel(0);
-#elif defined(CONFIG_VIDEO_MHL_V2)
-			i2c_smbus_write_byte_data(client,
-				FSA9480_REG_RESERVED_1D, 0x04);
-
-			if (isDeskdockconnected)
-				FSA9480_CheckAndHookAudioDock(USE_DESK_DOCK, 0);
-			isDeskdockconnected = 0;
-			Dockconnected = 0;
-#else 
-			FSA9480_CheckAndHookAudioDock(USE_DESK_DOCK, 0);
-			if (pdata->deskdock_cb)
-				pdata->deskdock_cb(FSA9480_DETACHED);
-
-			ret = i2c_smbus_read_byte_data(client,
-					FSA9480_REG_CTRL);
-			if (ret < 0)
-				dev_err(&client->dev,
-					"%s: err %d\n", __func__, ret);
-
-			ret = i2c_smbus_write_byte_data(client,
-					FSA9480_REG_CTRL, ret | CON_MANUAL_SW);
-			if (ret < 0)
-				dev_err(&client->dev,
-					"%s: err %d\n", __func__, ret);
-		/* Car Dock */
-#endif
-		} else if (usbsw->dev2 & DEV_JIG_UART_ON) {
-			if (pdata->cardock_cb)
-				pdata->cardock_cb(FSA9480_DETACHED);	
-
-				ret = i2c_smbus_read_byte_data(client,
-						FSA9480_REG_CTRL);
-				if (ret < 0)
-					dev_err(&client->dev,
-						"%s: err %d\n", __func__, ret);
-
-				ret = i2c_smbus_write_byte_data(client,
-						FSA9480_REG_CTRL, ret | CON_MANUAL_SW);
-				if (ret < 0)
-					dev_err(&client->dev,
-						"%s: err %d\n", __func__, ret);
-				usbsw->cardock_attached=0;
-		}
-
-//We need to check dock detach Because ADC can de changed by water or other reasons.
-//We check deskdock, cardock.
-		if (isDeskdockconnected) {
-#if defined CONFIG_MHL_D3_SUPPORT
-			mhl_onoff_ex(false);
-			detached_status = 1;
-#endif
-			printk(KERN_DEBUG "FSA Deskdock abnomal Detach\n");
-#if defined(CONFIG_VIDEO_MHL_V1)
-			FSA9480_MhlSwitchSel(0);
-#elif defined(CONFIG_VIDEO_MHL_V2)
-			FSA9480_CheckAndHookAudioDock(USE_DESK_DOCK, 0);
-			isDeskdockconnected = 0;
-			Dockconnected = 0;
-#endif
-		}
-
-		if (usbsw->cardock_attached) {
-			printk(KERN_DEBUG "FSA Cardock abnomal Detach\n");
-			if (pdata->deskdock_cb)
-				pdata->deskdock_cb(FSA9480_DETACHED);
-
-			ret = i2c_smbus_read_byte_data(client,
-					FSA9480_REG_CTRL);
-			if (ret < 0)
-				dev_err(&client->dev,
-					"%s: err %d\n", __func__, ret);
-
-			ret = i2c_smbus_write_byte_data(client,
-					FSA9480_REG_CTRL, ret | CON_MANUAL_SW);
-			if (ret < 0)
-				dev_err(&client->dev,
-					"%s: err %d\n", __func__, ret);
-			usbsw->cardock_attached=0;
 		}
 	}
 
@@ -1056,343 +755,18 @@ out:
 	fsa9480_write_reg(client, FSA9480_REG_CTRL, ctrl);
 }
 
-static void fsa9480_reg_init(struct fsa9480_usbsw *usbsw)
-{
-	struct i2c_client *client = usbsw->client;
-	unsigned int ctrl = CON_MASK;
-	int ret;
-
-	/* mask interrupts (unmask attach/detach only) */
-	ret = i2c_smbus_write_word_data(client, FSA9480_REG_INT1_MASK, 0x1afc);  // adc check, AV Charging
-	if (ret < 0)
-		dev_err(&client->dev, "%s: err %d\n", __func__, ret);
-
-	/* mask all car kit interrupts */
-	ret = i2c_smbus_write_word_data(client, FSA9480_REG_CK_INTMASK1, 0x07ff);
-	if (ret < 0)
-		dev_err(&client->dev, "%s: err %d\n", __func__, ret);
-
-	/* ADC Detect Time: 500ms */
-	ret = i2c_smbus_write_byte_data(client, FSA9480_REG_TIMING1, 0x0);
-	if (ret < 0)
-		dev_err(&client->dev, "%s: err %d\n", __func__, ret);
-
-	usbsw->mansw = i2c_smbus_read_byte_data(client, FSA9480_REG_MANSW1);
-	if (usbsw->mansw < 0)
-		dev_err(&client->dev, "%s: err %d\n", __func__, usbsw->mansw);
-
-	if (usbsw->mansw)
-		ctrl &= ~CON_MANUAL_SW;	/* Manual Switching Mode */
-
-	ret = i2c_smbus_write_byte_data(client, FSA9480_REG_CTRL, ctrl);
-	if (ret < 0)
-		dev_err(&client->dev, "%s: err %d\n", __func__, ret);
-
-	ret = i2c_smbus_write_byte_data(client, FSA9480_REG_RESERVED_1D, 0x04);
-	if (ret < 0)
-		dev_err(&client->dev, "%s: err %d\n", __func__, ret);
-
-	ret=i2c_smbus_read_byte_data(client, FSA9480_REG_DEVID);
-	if (ret < 0)
-		dev_err(&client->dev, "%s: err %d\n", __func__, ret);	
-	
-	if (ret == 0x00)
-	{
-		HWversion=VERSION_FSA9485;
-	}
-	else if (ret == 0x28) 
-	{
-		HWversion=VERSION_FSA9480;
-	}
-
-	dev_info(&client->dev, " fsa9480_reg_init dev ID: 0x%x\n", ret);
-	
-	
-}
-
-// Add for fsa9485 device check (Samsung) [
-void fsa9480_check_device(void)
-{
-	struct i2c_client *client;
-	int ret = 0;
-
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
-	if (local_usbsw==NULL || initial_check==0)
-		return;
-#endif
-	client= local_usbsw->client;
-	
-	ret = i2c_smbus_read_byte_data(client,FSA9480_REG_CTRL);
-	if (ret < 0)
-		dev_err(&client->dev,"%s: err %d\n", __func__, ret);
-
-	if (ret==0x1F)
-	{
-		dev_info(&client->dev, " %s  ret : %x \n", __func__,ret);
-		ret = i2c_smbus_write_byte_data(client, FSA9480_REG_CTRL, 0x1E);
-		if (ret < 0)
-			dev_err(&client->dev, "%s: err %d\n", __func__, ret);
-
-		i2c_smbus_read_word_data(client, FSA9480_REG_INT1); // clear interrupt
-	}
-}
-// ]
-
-static int fsa9480_check_dev(struct fsa9480_usbsw *usbsw)
-{
-	struct i2c_client *client = usbsw->client;
-	int device;
-	device = i2c_smbus_read_word_data(client, FSA9480_REG_DEV_T1);
-	if (device < 0)
-	{
-		dev_err(&client->dev, "%s: err %d\n", __func__, device);
-		return 0;
-	}
-	return device;
-}
-
-// for fsa9485 is not responding during mhl switching [ 
-#ifdef CONFIG_VIDEO_MHL_V1
-static void fsa9480_mhl_check(struct work_struct *work)
-{
-	struct i2c_client *client = local_usbsw->client;
-	unsigned char val=0;
-	int device_type=0;
-
-	dev_info(&client->dev, " %s  %d, Deskdockconnected %d \n", __func__, local_usbsw->check_watchdog,isDeskdockconnected);
-
-// We check again deskdock connection
-
-	if (isDeskdockconnected)
-	{
-		device_type=fsa9480_check_dev(local_usbsw);
-		val = device_type >> 8;
-		if (!(val & DEV_AV))
-		{
-			FSA9480_MhlSwitchSel(0);
-			fsa9480_reg_init(local_usbsw);
-		}
-	}
-// there is no respond from MHL driver.
-	if (local_usbsw->check_watchdog ==0)
-	{
-		FSA9480_MhlSwitchSel(0);
-		fsa9480_reg_init(local_usbsw);
-	}
-}
-#endif/*CONFIG_VIDEO_MHL_V1*/
-// ]
-
-static int fsa9480_handle_dock_vol_key(struct fsa9480_usbsw *info, int adc)
-{
-	struct input_dev *input = info->input;
-	int pre_key = info->previous_key;
-	unsigned int code=0;
-	int state=0;
-
-	if (adc == ADC_OPEN) {
-		switch (pre_key) {
-			case DOCK_KEY_VOL_UP_PRESSED:
-				code = KEY_VOLUMEUP;
-				state = 0;
-				info->previous_key = DOCK_KEY_VOL_UP_RELEASED;
-				break;
-			case DOCK_KEY_VOL_DOWN_PRESSED:
-				code = KEY_VOLUMEDOWN;
-				state = 0;
-				info->previous_key = DOCK_KEY_VOL_DOWN_RELEASED;
-				break;
-			case DOCK_KEY_PREV_PRESSED:
-				code = KEY_PREVIOUSSONG;
-				state = 0;
-				info->previous_key = DOCK_KEY_PREV_RELEASED;
-				break;
-			case DOCK_KEY_PLAY_PAUSE_PRESSED:
-				code = KEY_PLAYPAUSE;
-				state = 0;
-				info->previous_key = DOCK_KEY_PLAY_PAUSE_RELEASED;
-				break;
-			case DOCK_KEY_NEXT_PRESSED:
-				code = KEY_NEXTSONG;
-				state = 0;
-				info->previous_key = DOCK_KEY_NEXT_RELEASED;
-				break;
-			default:
-				return 0;
-		}
-		input_event(input, EV_KEY, code, state);
-		input_sync(input);
-		return 0;
-	}
-
-	if (pre_key == DOCK_KEY_NONE) {
-		if (adc != ADC_DOCK_VOL_UP && adc != ADC_DOCK_VOL_DN)
-			return 0;
-	}
-
-	switch (adc) {
-		case ADC_DOCK_VOL_UP:
-			code = KEY_VOLUMEUP;
-			state = 1;
-			info->previous_key = DOCK_KEY_VOL_UP_PRESSED;
-			break;
-		case ADC_DOCK_VOL_DN:
-			code = KEY_VOLUMEDOWN;
-			state = 1;
-			info->previous_key = DOCK_KEY_VOL_DOWN_PRESSED;
-			break;
-		case ADC_DOCK_PREV_KEY-1 ... ADC_DOCK_PREV_KEY+1:
-			code = KEY_PREVIOUSSONG;
-			state = 1;
-			info->previous_key = DOCK_KEY_PREV_PRESSED;
-			break;
-		case ADC_DOCK_PLAY_PAUSE_KEY-1 ... ADC_DOCK_PLAY_PAUSE_KEY+1:
-			code = KEY_PLAYPAUSE;
-			state = 1;
-			info->previous_key = DOCK_KEY_PLAY_PAUSE_PRESSED;
-			break;
-		case ADC_DOCK_NEXT_KEY-1 ... ADC_DOCK_NEXT_KEY+1:
-			code = KEY_NEXTSONG;
-			state = 1;
-			info->previous_key = DOCK_KEY_NEXT_PRESSED;
-			break;
-		case ADC_DESKDOCK:
-			if (pre_key == DOCK_KEY_VOL_UP_PRESSED) {
-				code = KEY_VOLUMEUP;
-				state = 0;
-				info->previous_key = DOCK_KEY_VOL_UP_RELEASED;
-			} else if (pre_key == DOCK_KEY_VOL_DOWN_PRESSED) {
-				code = KEY_VOLUMEDOWN;
-				state = 0;
-				info->previous_key = DOCK_KEY_VOL_DOWN_RELEASED;
-			} else if (pre_key == DOCK_KEY_PREV_PRESSED) {
-				code = KEY_PREVIOUSSONG;
-				state = 0;
-				info->previous_key = DOCK_KEY_PREV_RELEASED;
-			} else if (pre_key == DOCK_KEY_PLAY_PAUSE_PRESSED) {
-				code = KEY_PLAYPAUSE;
-				state = 0;
-				info->previous_key = DOCK_KEY_PLAY_PAUSE_RELEASED;
-			} else if (pre_key == DOCK_KEY_NEXT_PRESSED) {
-				code = KEY_NEXTSONG;
-				state = 0;
-				info->previous_key = DOCK_KEY_NEXT_RELEASED;
-			} else {
-				return 0;
-			}
-			break;
-		default:
-			break;
-			return 0;
-	}
-
-	input_event(input, EV_KEY, code, state);
-	input_sync(input);
-	
-	return 1;
-}
-
-static int fsa9480_Check_AVDock(struct fsa9480_usbsw *usbsw, int device_type)
-{
-	// struct fsa9480_platform_data *pdata = usbsw->pdata;
-	struct i2c_client *client = usbsw->client;
-	int adc_val=0;
-	int int2_val=0;
-#if defined(CONFIG_VIDEO_MHL_V1)
-	unsigned char val;
-#endif
-
-	dev_info(&client->dev, "%s intr: 0x%x\n",__func__, gv_intr2);
-
-	if(HWversion==VERSION_FSA9480) {
-		int2_val = 0x4;
-	}
-	else if(HWversion==VERSION_FSA9485) {
-		int2_val = 0x400;
-	}
-
-	if (gv_intr2 & int2_val) // for adc change
-	{
-		adc_val=i2c_smbus_read_word_data(client, FSA9480_REG_ADC);
-		fsa9480_handle_dock_vol_key(usbsw, adc_val);
-
-		dev_info(&client->dev, "intr: 0x%x, adc_val: %d\n", gv_intr2, adc_val);
-		return IRQ_NONE;
-	}
-#if defined(CONFIG_VIDEO_MHL_V1)
-	else if (gv_intr2 & 0x1)   // for av change (desk dock, hdmi)
-	{
-		if (HWversion==VERSION_FSA9485)
-			mhl_vbus = true;
-		dev_info(&client->dev, "%s enter Av charing \n",__func__);
-		return IRQ_HANDLED;
-	}
-		
-	// for check Av charging during boot up
-	// when Mhl is recognized, usb interrupt occur
-	val = device_type & 0xff;
-	if (mhl_onoff && (val &DEV_USB))
-	{
-		dev_info(&client->dev, "%s enter Av charing \n",__func__);
-		return IRQ_NONE;
-	}
-#endif
-	return IRQ_HANDLED;
-	
-	//
-}
-
 static irqreturn_t fsa9480_irq_handler(int irq, void *data)
 {
 	struct fsa9480_usbsw *usbsw = data;
 	struct i2c_client *client = usbsw->client;
 	int intr;
-	int device;
-	////////////////////////////////////////
-	// dy96.choi                                                         //
-	// FSA9480 : Read interrupt -> Read Device         //
-	// FSA9485 : Read Device -> Read interrupt         //   
-	////////////////////////////////////////
-
-	if (HWversion==VERSION_FSA9485)
-		device_type=fsa9480_check_dev(usbsw);
-
-	/* read and clear interrupt status bits */
-	intr = i2c_smbus_read_word_data(client, FSA9480_REG_INT1);
-	if (intr < 0) {
-		mdelay(100);
-		dev_err(&client->dev, "%s: err %d\n", __func__, intr);
-		intr = i2c_smbus_read_word_data(client, FSA9480_REG_INT1);
-		if (intr < 0)
-			dev_err(&client->dev, "%s: err at read %d\n", __func__, intr);
-		fsa9480_reg_init(usbsw);
-		return IRQ_HANDLED;
-	} else if (intr == 0) {
-		/* interrupt was fired, but no status bits were set,
-		so device was reset. In this case, the registers were
-		reset to defaults so they need to be reinitialised. */
-		fsa9480_reg_init(usbsw);
-	}
-
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
-	if(HWversion==VERSION_FSA9480)
-		gv_intr2 = intr >> 8;
-	else if(HWversion==VERSION_FSA9485)
-		gv_intr2 = intr;
-#endif	
-
-	if (HWversion==VERSION_FSA9485)
-		if (IRQ_NONE==fsa9480_Check_AVDock(usbsw,device_type)) return 0;
 
 	/* clear interrupt */
 	fsa9480_read_irq(client, &intr);
 
 	/* device detection */
-	mutex_lock(&usbsw->mutex);
 	fsa9480_detect_dev(usbsw, intr);
-	mutex_unlock(&usbsw->mutex);
 
-	initial_check=1;
 	return IRQ_HANDLED;
 }
 
@@ -1438,66 +812,21 @@ static int fsa9480_irq_init(struct fsa9480_usbsw *usbsw)
 	return 0;
 }
 
-static void fsa9480_init_detect(struct work_struct *work)
-{
-	struct fsa9480_usbsw *usbsw = container_of(work,
-			struct fsa9480_usbsw, init_work.work);
-	int ret = 0;
-
-	dev_info(&usbsw->client->dev, "%s \n", __func__);
-	
-	mutex_lock(&usbsw->mutex);
-	fsa9480_detect_dev(usbsw);
-	mutex_unlock(&usbsw->mutex);
-	
-	ret = fsa9480_irq_init(usbsw);
-	if (ret)
-		dev_info(&usbsw->client->dev, "failed to enable  irq init %s\n", __func__);
-}
-
 static int __devinit fsa9480_probe(struct i2c_client *client,
 			 const struct i2c_device_id *id)
 {
 	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
 	struct fsa9480_usbsw *usbsw;
 	int ret = 0;
-	struct input_dev *input;
-	
+
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 		return -EIO;
 
-	input = input_allocate_device();
 	usbsw = kzalloc(sizeof(struct fsa9480_usbsw), GFP_KERNEL);
-	if (!usbsw ||!input ) {
+	if (!usbsw) {
 		dev_err(&client->dev, "failed to allocate driver data\n");
-		kfree(usbsw);
 		return -ENOMEM;
 	}
-
-// for dock key [
-	usbsw->input = input;
-	input->name = client->name;
-	input->phys = "deskdock-key/input0";
-	input->dev.parent = &client->dev;
-	input->id.bustype = BUS_HOST;
-	input->id.vendor = 0x0001;
-	input->id.product = 0x0001;
-	input->id.version = 0x0001;
-
-	/* Enable auto repeat feature of Linux input subsystem */
-	__set_bit(EV_REP, input->evbit);
-
-	input_set_capability(input, EV_KEY, KEY_VOLUMEUP);
-	input_set_capability(input, EV_KEY, KEY_VOLUMEDOWN);
-	input_set_capability(input, EV_KEY, KEY_PLAYPAUSE);
-	input_set_capability(input, EV_KEY, KEY_PREVIOUSSONG);
-	input_set_capability(input, EV_KEY, KEY_NEXTSONG);
-
-	ret = input_register_device(input);
-	if (ret) {
-		dev_err(&client->dev, "input_register_device %s: err %d\n", __func__, ret);
-	}
-// ]
 
 	usbsw->client = client;
 	usbsw->pdata = client->dev.platform_data;
@@ -1509,15 +838,6 @@ static int __devinit fsa9480_probe(struct i2c_client *client,
 	ret = fsa9480_irq_init(usbsw);
 	if (ret)
 		goto fail1;
-
-	mutex_init(&usbsw->mutex);
-
-	local_usbsw = usbsw;  // temp
-
-	if (chip->pdata->cfg_gpio)
-		chip->pdata->cfg_gpio();
-
-	fsa9480_reg_init(usbsw);
 
 	ret = sysfs_create_group(&client->dev.kobj, &fsa9480_group);
 	if (ret) {
@@ -1532,32 +852,6 @@ static int __devinit fsa9480_probe(struct i2c_client *client,
 	if (chip->pdata->reset_cb)
 		chip->pdata->reset_cb();
 
-	// set fsa9480 init flag.
-	if (chip->pdata->set_init_flag)
-		chip->pdata->set_init_flag();
-
-	#ifdef CONFIG_VIDEO_MHL_V1
-	//Rajucm: Isolate MHL work from fsa to unblock normal fsa-operations
-	INIT_WORK(&mhl_start_work, mhl_onff_handler);
-	fsa_mhl_workqueue = create_singlethread_workqueue("fsa_mhl_workqueue");
-	#endif
-	
-	/* initial cable detection */
-	INIT_DELAYED_WORK(&usbsw->init_work, fsa9480_init_detect);
-#ifdef CONFIG_VIDEO_MHL_V1
-	INIT_DELAYED_WORK(&usbsw->fsa_watchdog, fsa9480_mhl_check);
-#endif
-	
-#if defined (CONFIG_KOR_MODEL_SHV_E160S) || defined (CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_KOR_MODEL_SHV_E160L)
-	if(get_hw_rev()<=0x03)
-		schedule_delayed_work(&usbsw->init_work, msecs_to_jiffies(32000));
-	else
-		schedule_delayed_work(&usbsw->init_work, msecs_to_jiffies(6000));
-#else
-	schedule_delayed_work(&usbsw->init_work, msecs_to_jiffies(6000));
-
-#endif
-
 	/* device detection */
 	fsa9480_detect_dev(usbsw, INT_ATTACH);
 
@@ -1569,8 +863,6 @@ fail2:
 	if (client->irq)
 		free_irq(client->irq, usbsw);
 fail1:
-	mutex_destroy(&usbsw->mutex);
-	i2c_set_clientdata(client, NULL);
 	kfree(usbsw);
 	return ret;
 }
@@ -1578,14 +870,8 @@ fail1:
 static int __devexit fsa9480_remove(struct i2c_client *client)
 {
 	struct fsa9480_usbsw *usbsw = i2c_get_clientdata(client);
-
-	cancel_delayed_work(&usbsw->init_work);
-	if (client->irq) {
-		disable_irq_wake(client->irq);
+	if (client->irq)
 		free_irq(client->irq, usbsw);
-	}
-	mutex_destroy(&usbsw->mutex);
-	i2c_set_clientdata(client, NULL);
 
 	sysfs_remove_group(&client->dev.kobj, &fsa9480_group);
 	device_init_wakeup(&client->dev, 0);
@@ -1617,16 +903,6 @@ static int fsa9480_resume(struct i2c_client *client)
 	if (device_may_wakeup(&client->dev) && client->irq)
 		disable_irq_wake(client->irq);
 
-#ifdef CONFIG_FTM_SLEEP
-	if(ftm_sleep && ftm_sleep_exit)
-	{
-		ftm_sleep=0;
-		ftm_sleep_exit=0;
-		fsa9480_manual_switching(SWITCH_PORT_AUTO);
-		printk(KERN_DEBUG "wakeup from ftm sleep, port reconnect..\n");
-	}
-#endif
-
 	/*
 	 * Clear Pending interrupt. Note that detect_dev does what
 	 * the interrupt handler does. So, we don't miss pending and
@@ -1639,9 +915,7 @@ static int fsa9480_resume(struct i2c_client *client)
 	dev2 = fsa9480_read_reg(client, FSA9480_REG_DEV_T2);
 
 	/* device detection */
-	mutex_lock(&usbsw->mutex);
 	fsa9480_detect_dev(usbsw, (dev1 || dev2) ? INT_ATTACH : INT_DETACH);
-	mutex_unlock(&usbsw->mutex);
 
 	return 0;
 }
