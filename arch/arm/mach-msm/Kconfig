@@ -1827,12 +1827,12 @@ choice
 		  Support models of celox series
 
 	config TARGET_SERIES_DALI
-		bool "SERIES_CELOX"
+		bool "SERIES_DALI"
 		help
 		  Support models of dali series
 
 	config TARGET_SERIES_Q1
-		bool "SERIES_CELOX"
+		bool "SERIES_Q1"
 		help
 		  Support models of q1 series		  
 
@@ -1859,7 +1859,7 @@ choice
 	config TARGET_LOCALE_KOR
 		bool "Locale KOR "
 		help
-		  Support Korea SKT Board
+		  Support Korea Board
 
 	config TARGET_LOCALE_USA
 		bool "Locale USA "
@@ -2008,22 +2008,6 @@ config SEC_EXTRA_VOLUME_SOL
 	default n
 	help
 		Support Sec Extra Volume Solution
-
-config SEC_DVFS
-	bool "SEC DVFS LOCK"
-	default n
-	help
-	  Support Sec DVFS Lock function
-
-config SEC_DVFS_DUAL
-	bool "DVFS DUAL BOOST"
-	default n
-	depends on SEC_DVFS
-
-config SEC_DVFS_UNI
-	bool "DVFS UNI"
-	default n
-	depends on SEC_DVFS
 
 config MSM_IDLE_WAIT_ON_MODEM
 	int "Wait for Modem to become ready for idle power collapse"
@@ -2846,23 +2830,6 @@ config SEC_LOG_LAST_KMSG
 	bool "Enable /proc/last_kmsg support: if EMBEDDED"
 	help
 	  This option enables /proc/last_kmsg support.
-
-config ANDROID_WIP
-	bool "work in progress hacks for android"
-	default n
-	help
-	  This enables 'work in progress' hacks for android issues.
-
-config COMPACTION_RETRY
-	bool "retry compaction once more after direct reclaim fails"
-	default n
-	depends on COMPACTION
-	help
-	  This enables compaction retry in android.
-	  If fails to get pages even with direct reclaim,
-	  we give one more try to allocate pages with forced compaction.
-	  This might avoid oom-killer invocation.
-	  with many free pages being already there.
 
 config MSM_USE_USER_ACCESSIBLE_TIMERS
 	bool "Enables mapping an MSM timer counter page to user space."
