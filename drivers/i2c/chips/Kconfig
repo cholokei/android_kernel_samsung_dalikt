@@ -57,13 +57,6 @@ config WM8994_AMP
         help
          WM8994 Audio AMP
 
-config USB_SWITCH_FSA9480
-	tristate "FSA9480 Micro USB Switch IC Driver"
-	depends on I2C
-	default n
-	help
-	 FSA9480 Micro USB Switch IC Driver
-
 config GYRO_K3G
 	tristate "K3G driver for s5pc210"
 	default n
