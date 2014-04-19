@@ -20,7 +20,7 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/switch.h>
-#include <linux/i2c/fsa9480.h>
+#include <linux/platform_data/fsa9480.h>
 //#include <linux/mfd/max8998.h>
 #include <linux/regulator/consumer.h>
 #include <linux/moduleparam.h>

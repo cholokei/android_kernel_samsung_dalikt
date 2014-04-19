@@ -228,7 +228,7 @@ extern bool SiI9234_init(void);
 
 void DisableFSA9480Interrupts(void)
 {
-	struct i2c_client *client = local_usbsw->client;
+	struct i2c_client *client = chip->client;
 	int value,ret;
 
 	value = i2c_smbus_read_byte_data(client, FSA9480_REG_CTRL);
@@ -242,7 +242,7 @@ void DisableFSA9480Interrupts(void)
 
 void EnableFSA9480Interrupts(void)
 {
-	struct i2c_client *client = local_usbsw->client;
+	struct i2c_client *client = chip->client;
 	int value,ret;
 
 	i2c_smbus_read_byte_data(client, FSA9480_REG_INT1);
@@ -260,13 +260,13 @@ void EnableFSA9480Interrupts(void)
 extern unsigned int sec_get_lpm_mode(void);
 void FSA9480_CheckAndHookAudioDock(int value, int onoff)
 {
-	struct i2c_client *client = local_usbsw->client;
-	struct fsa9480_platform_data *pdata = local_usbsw->pdata;
+	struct i2c_client *client = chip->client;
+	struct fsa9480_platform_data *pdata = chip->pdata;
 	int ret = 0;
 	// unsigned int ctrl = CON_MASK;
 
 	if (onoff)
-		local_usbsw->check_watchdog=1;
+		chip->check_watchdog=1;
 
 	if (value == USE_DESK_DOCK)
 	{
@@ -361,8 +361,8 @@ void FSA9480_CheckAndHookAudioDock(int value, int onoff)
 			if (pdata->mhl_cb)
 				pdata->mhl_cb(FSA9480_DETACHED);
 
-			if (local_usbsw!=NULL)
-				fsa9480_reg_init(local_usbsw);
+			if (chip!=NULL)
+				fsa9480_reg_init(chip);
 		}
 		usedeskdock= false;	
 		isDeskdockconnected=0;		
@@ -373,7 +373,7 @@ void FSA9480_CheckAndHookAudioDock(int value, int onoff)
 #ifdef CONFIG_VIDEO_MHL_V1
 void mhl_onff_handler(struct work_struct *work) //Rajucm
 {	
-	// struct i2c_client *client = local_usbsw->client;
+	// struct i2c_client *client = chip->client;
 	printk("praveen: mhl on off handler\n");
 
 	//Rajucm: phone Power on with MHL Cable,avoid crash
@@ -405,8 +405,8 @@ void mhl_onff_handler(struct work_struct *work) //Rajucm
 		if(mhl_cable_status == 0x08 || mhl_cable_status == 0x00 || mhl_cable_status == 0x03)
 		{
 			SiI9234_init();
-			local_usbsw->check_watchdog=0;
-			schedule_delayed_work(&local_usbsw->fsa_watchdog, msecs_to_jiffies(3000));
+			chip->check_watchdog=0;
+			schedule_delayed_work(&chip->fsa_watchdog, msecs_to_jiffies(3000));
 			DisableFSA9480Interrupts();
 			gpio_set_value_cansleep(GPIO_MHL_SEL, mhl_onoff);
 		}
@@ -483,7 +483,7 @@ EXPORT_SYMBOL(FSA9480_MhlSwitchSel);
 
 void FSA9480_MhlTvOff(void)
 {
-	struct i2c_client *client =  local_usbsw->client;
+	struct i2c_client *client =  chip->client;
 	int intr1=0;
 	int value;
 
@@ -691,7 +691,7 @@ void fsa9480_otg_detach()
 	// unsigned int value;
 	unsigned int data = 0;
 	int ret;
-	struct i2c_client *client = local_usbsw->client;
+	struct i2c_client *client = chip->client;
 
 	data=0x00;
 	ret = i2c_smbus_write_byte_data(client, FSA9480_REG_MANSW2, data);
@@ -713,7 +713,7 @@ EXPORT_SYMBOL(fsa9480_otg_detach);
 
 void fsa9480_manual_switching(int path)
 {
-	struct i2c_client *client = local_usbsw->client;
+	struct i2c_client *client = chip->client;
 	int value;
 	unsigned int data = 0;
 	int ret;
@@ -764,7 +764,7 @@ void fsa9480_manual_switching(int path)
 		return;
 	}
 
-	local_usbsw->mansw = data;
+	chip->mansw = data;
 
 	// path for FTM sleep
 	if (path ==  SWITCH_PORT_ALL_OPEN) {
@@ -798,7 +798,7 @@ EXPORT_SYMBOL(fsa9480_manual_switching);
 #ifdef CONFIG_MHL_D3_SUPPORT
 int get_vbus_valid(void)
 {
-	struct i2c_client *client = local_usbsw->client;
+	struct i2c_client *client = chip->client;
 	int ret;
 	ret = i2c_smbus_read_byte_data(client, 0x1d);
 	if (ret & 0x2) {
@@ -833,6 +833,7 @@ static ssize_t fsa9480_reset(struct fsa9480_usbsw *usbsw, int reset)
 
 static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw, int intr)
 {
+	int ret;
 	int val1, val2, ctrl;
 	struct fsa9480_platform_data *pdata = usbsw->pdata;
 	struct i2c_client *client = usbsw->client;
@@ -1202,10 +1203,10 @@ void fsa9480_check_device(void)
 	int ret = 0;
 
 #if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
-	if (local_usbsw==NULL || initial_check==0)
+	if (chip==NULL || initial_check==0)
 		return;
 #endif
-	client= local_usbsw->client;
+	client= chip->client;
 	
 	ret = i2c_smbus_read_byte_data(client,FSA9480_REG_CTRL);
 	if (ret < 0)
@@ -1240,29 +1241,29 @@ static int fsa9480_check_dev(struct fsa9480_usbsw *usbsw)
 #ifdef CONFIG_VIDEO_MHL_V1
 static void fsa9480_mhl_check(struct work_struct *work)
 {
-	struct i2c_client *client = local_usbsw->client;
+	struct i2c_client *client = chip->client;
 	unsigned char val=0;
-	int device_type=0;
+	int device=0;
 
-	dev_info(&client->dev, " %s  %d, Deskdockconnected %d \n", __func__, local_usbsw->check_watchdog,isDeskdockconnected);
+	dev_info(&client->dev, " %s  %d, Deskdockconnected %d \n", __func__, chip->check_watchdog,isDeskdockconnected);
 
 // We check again deskdock connection
 
 	if (isDeskdockconnected)
 	{
-		device_type=fsa9480_check_dev(local_usbsw);
-		val = device_type >> 8;
+		device=fsa9480_check_dev(chip);
+		val = device >> 8;
 		if (!(val & DEV_AV))
 		{
 			FSA9480_MhlSwitchSel(0);
-			fsa9480_reg_init(local_usbsw);
+			fsa9480_reg_init(chip);
 		}
 	}
 // there is no respond from MHL driver.
-	if (local_usbsw->check_watchdog ==0)
+	if (chip->check_watchdog ==0)
 	{
 		FSA9480_MhlSwitchSel(0);
-		fsa9480_reg_init(local_usbsw);
+		fsa9480_reg_init(chip);
 	}
 }
 #endif/*CONFIG_VIDEO_MHL_V1*/
@@ -1377,7 +1378,7 @@ static int fsa9480_handle_dock_vol_key(struct fsa9480_usbsw *info, int adc)
 	return 1;
 }
 
-static int fsa9480_Check_AVDock(struct fsa9480_usbsw *usbsw, int device_type)
+static int fsa9480_Check_AVDock(struct fsa9480_usbsw *usbsw, int device)
 {
 	// struct fsa9480_platform_data *pdata = usbsw->pdata;
 	struct i2c_client *client = usbsw->client;
@@ -1415,7 +1416,7 @@ static int fsa9480_Check_AVDock(struct fsa9480_usbsw *usbsw, int device_type)
 		
 	// for check Av charging during boot up
 	// when Mhl is recognized, usb interrupt occur
-	val = device_type & 0xff;
+	val = device & 0xff;
 	if (mhl_onoff && (val &DEV_USB))
 	{
 		dev_info(&client->dev, "%s enter Av charing \n",__func__);
@@ -1440,7 +1441,7 @@ static irqreturn_t fsa9480_irq_handler(int irq, void *data)
 	////////////////////////////////////////
 
 	if (HWversion==VERSION_FSA9485)
-		device_type=fsa9480_check_dev(usbsw);
+		device=fsa9480_check_dev(usbsw);
 
 	/* read and clear interrupt status bits */
 	intr = i2c_smbus_read_word_data(client, FSA9480_REG_INT1);
@@ -1467,7 +1468,7 @@ static irqreturn_t fsa9480_irq_handler(int irq, void *data)
 #endif	
 
 	if (HWversion==VERSION_FSA9485)
-		if (IRQ_NONE==fsa9480_Check_AVDock(usbsw,device_type)) return 0;
+		if (IRQ_NONE==fsa9480_Check_AVDock(usbsw,device)) return 0;
 
 	/* clear interrupt */
 	fsa9480_read_irq(client, &intr);
@@ -1527,12 +1528,17 @@ static void fsa9480_init_detect(struct work_struct *work)
 {
 	struct fsa9480_usbsw *usbsw = container_of(work,
 			struct fsa9480_usbsw, init_work.work);
+	struct i2c_client *client = usbsw->client;
 	int ret = 0;
+	int intr;
 
 	dev_info(&usbsw->client->dev, "%s \n", __func__);
-	
+
+	/* clear interrupt */
+	fsa9480_read_irq(client, &intr);
+
 	mutex_lock(&usbsw->mutex);
-	fsa9480_detect_dev(usbsw);
+	fsa9480_detect_dev(usbsw, intr);
 	mutex_unlock(&usbsw->mutex);
 	
 	ret = fsa9480_irq_init(usbsw);
@@ -1597,7 +1603,7 @@ static int __devinit fsa9480_probe(struct i2c_client *client,
 
 	mutex_init(&usbsw->mutex);
 
-	local_usbsw = usbsw;  // temp
+	chip = usbsw;  // temp
 
 	if (chip->pdata->cfg_gpio)
 		chip->pdata->cfg_gpio();

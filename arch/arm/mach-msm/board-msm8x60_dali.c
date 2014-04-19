@@ -159,7 +159,7 @@
 
 #include <linux/power_supply.h>
 #include <mach/sec_battery.h>
-#include <linux/i2c/fsa9480.h>
+#include <linux/platform_data/fsa9480.h>
 #include <mach/sec_debug.h>
 #include <mach/sec_switch.h>
 #include <linux/usb/gadget.h>
