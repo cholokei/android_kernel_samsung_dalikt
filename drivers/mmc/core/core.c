@@ -45,10 +45,6 @@
 #include "sd_ops.h"
 #include "sdio_ops.h"
 
-#if defined(CONFIG_BCM4334) || defined(CONFIG_BCM4330)
-#include "../host/msm_sdcc.h"
-#endif
-
 #define CREATE_TRACE_POINTS
 #include <trace/events/mmc.h>
 
@@ -3079,15 +3075,6 @@ int mmc_suspend_host(struct mmc_host *host)
 stop_bkops_err:
 	if (!(host->card && mmc_card_sdio(host->card)))
 		mmc_release_host(host);
-
-#if defined (CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined (CONFIG_KOR_MODEL_SHV_E160L) || \
-	defined (CONFIG_KOR_MODEL_SHV_E120S) || defined(CONFIG_KOR_MODEL_SHV_E120K) || defined (CONFIG_KOR_MODEL_SHV_E120L) || \
-	defined (CONFIG_KOR_MODEL_SHV_E110S)
-	
-#else
-	 if (host->card && host->card->type == MMC_TYPE_SD)
-		mdelay(50);
-#endif
 	return err;
 }
 
@@ -3150,9 +3137,6 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 {
 	struct mmc_host *host = container_of(
 		notify_block, struct mmc_host, pm_notify);
-#if defined(CONFIG_BCM4334) || defined(CONFIG_BCM4330)
-	struct msmsdcc_host *msmhost = mmc_priv(host);
-#endif
 	unsigned long flags;
 	int err = 0;
 
@@ -3205,13 +3189,6 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 		}
 		host->rescan_disable = 0;
 		spin_unlock_irqrestore(&host->lock, flags);
-
-#if defined(CONFIG_BCM4334) || defined(CONFIG_BCM4330)
-		if (host->card && msmhost && msmhost->pdev_id == 4)
-			printk(KERN_INFO"%s(): WLAN SKIP DETECT CHANGE\n",
-					__func__);
-		else
-#endif
 		mmc_detect_change(host, 0);
 
 	}
