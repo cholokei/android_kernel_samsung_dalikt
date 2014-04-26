@@ -21,6 +21,9 @@
 #include <linux/mfd/msm-adie-codec.h>
 #include <linux/regulator/consumer.h>
 #include <linux/regulator/machine.h>
+#ifdef CONFIG_SENSORS_YDA165
+#include <linux/i2c/yda165.h>
+#endif
 
 #include <mach/qdsp6v2/audio_dev_ctl.h>
 #include <sound/apr_audio.h>
@@ -28,17 +31,71 @@
 #include <asm/uaccess.h>
 #include <mach/board-msm8660.h>
 
+#if defined(CONFIG_JPN_MODEL_SC_03D)
+#include <linux/kthread.h>
+#endif
 #include "snddev_icodec.h"
 #include "snddev_ecodec.h"
+
+#ifdef CONFIG_SEC_AUDIO_DEVICE
+#define SEC_AUDIO_DEVICE /* #add_device */
+#endif
+
+#ifdef SEC_AUDIO_DEVICE /* don't remove this feature */
+#if defined(CONFIG_USA_MODEL_SGH_T989)
+#include "timpani_profile_celox_tmo.h"
+#elif defined(CONFIG_USA_MODEL_SGH_I727)\
+|| defined(CONFIG_USA_MODEL_SGH_I717)\
+|| defined(CONFIG_USA_MODEL_SGH_I757)
+#include "timpani_profile_celox_att.h"
+#elif defined(CONFIG_JPN_MODEL_SC_03D)
+#include "timpani_profile_celox_jpn_ntt.h"
+#elif defined(CONFIG_KOR_MODEL_SHV_E120S) /* DALI-SKT */
+#include "timpani_profile_dali_skt.h"
+#elif defined(CONFIG_KOR_MODEL_SHV_E120K) /* DALI-KT */
+#include "timpani_profile_dali_kt.h"
+#elif defined(CONFIG_KOR_MODEL_SHV_E120L) /* DALI-LGT */
+#include "timpani_profile_dali_lgt.h"
+#elif defined(CONFIG_KOR_MODEL_SHV_E160S) /* QUINCY-SKT */
+#include "timpani_profile_quincy_skt.h"
+#elif defined(CONFIG_KOR_MODEL_SHV_E160K) /* QUINCY-KT */
+#include "timpani_profile_quincy_kt.h"
+#elif defined(CONFIG_KOR_MODEL_SHV_E160L) /* QUINCY-LGT */
+#include "timpani_profile_quincy_lgt.h"
+#elif defined(CONFIG_USA_MODEL_SGH_I957) /* P5LTE-ATT */
+#include "timpani_profile_p5lte_att.h"
+#else
+#include "timpani_profile_celox_kor.h"
+#endif
+#else
 #include "timpani_profile_8x60.h"
+#endif
+
 #include "snddev_hdmi.h"
 #include "snddev_mi2s.h"
 #include "snddev_virtual.h"
+
+#ifdef CONFIG_VP_A2220
+#include <linux/a2220.h>
+#endif
+
+#ifdef CONFIG_VP_A2220
+#define AUDIO_FREQUENCY 16000
+#else
+#define AUDIO_FREQUENCY 48000
+#define GPIO_SELECT_I2S_AUDIENCE_QTR 124
+#endif
 
 #ifdef CONFIG_DEBUG_FS
 static struct dentry *debugfs_hsed_config;
 static void snddev_hsed_config_modify_setting(int type);
 static void snddev_hsed_config_restore_setting(void);
+#endif
+
+extern unsigned int get_hw_rev(void);
+
+#if defined(CONFIG_USA_MODEL_SGH_T989) || defined(CONFIG_USA_MODEL_SGH_T769)
+#define SNDDEV_GPIO_VPS_AMP_EN 142
 #endif
 
 /* GPIO_CLASS_D0_EN */
@@ -50,6 +107,11 @@ static void snddev_hsed_config_restore_setting(void);
 #define SNDDEV_GPIO_MIC2_ANCR_SEL 294
 #define SNDDEV_GPIO_MIC1_ANCL_SEL 295
 #define SNDDEV_GPIO_HS_MIC4_SEL 296
+
+#ifdef CONFIG_USA_MODEL_SGH_I717
+#define PMIC_GPIO_MAIN_MICBIAS_EN      PM8058_GPIO(25)
+#define PMIC_GPIO_SUB_MICBIAS_EN       PM8058_GPIO(26)
+#endif
 
 #define DSP_RAM_BASE_8x60 0x46700000
 #define DSP_RAM_SIZE_8x60 0x2000000
@@ -126,6 +188,7 @@ static struct platform_device msm_aux_pcm_device = {
 	.resource       = msm_aux_pcm_resources,
 };
 
+#if 0 /* (-) ysseo 20110414 */
 static struct resource msm_mi2s_gpio_resources[] = {
 
 	{
@@ -159,6 +222,7 @@ static struct platform_device msm_mi2s_device = {
 	.num_resources	= ARRAY_SIZE(msm_mi2s_gpio_resources),
 	.resource	= msm_mi2s_gpio_resources,
 };
+#endif
 
 /* Must be same size as msm_icodec_gpio_resources */
 static int msm_icodec_gpio_defaults[] = {
@@ -190,6 +254,119 @@ static struct platform_device msm_icodec_gpio_device = {
 
 static struct regulator *s3;
 static struct regulator *mvs;
+
+#ifdef CONFIG_VP_A2220
+void msm_snddev_audience_call_route_config(void)
+{
+	pr_debug("%s()\n", __func__);
+
+	gpio_set_value(GPIO_SELECT_I2S_AUDIENCE_QTR, 0);
+	if (!dualmic_enabled) {
+		pr_debug("%s: NS off\n", __func__);
+		a2220_ioctl2(A2220_SET_CONFIG,
+				A2220_PATH_INCALL_RECEIVER_NSOFF);
+	} else {
+		pr_debug("%s: NS on\n", __func__);
+		a2220_ioctl2(A2220_SET_CONFIG,
+				A2220_PATH_INCALL_RECEIVER_NSON);
+	}
+	pr_debug("[AUD] AUD Path\n");
+
+#if 0
+	/*
+	 * (+)dragonball test Audience emulator.
+	 * You should delete this line normal release. Don't forget this one
+	 */
+	msleep(2000);
+	pr_info("##########################################################\n");
+	pr_info("# WARNING msm_snddev_PCM_call_route_config WARNING\n");
+	pr_info("# Audience emulator. DO NOT FORGET BELOW.\n");
+	pr_info("# You should delete this line normal release.\n");
+	pr_info("# WARNING WARNING WARNING WARNING WARNING WARNING\n");
+	pr_info("##########################################################\n");
+	gpio_direction_input(35); /* sda_pin */
+	gpio_direction_input(36); /* scl_pin */
+	/* gpio_set_value(123, 0); */
+	/* gpio_set_value(122, 0); */
+#endif
+
+	return;
+}
+
+void msm_snddev_audience_call_route_deconfig(void)
+{
+	pr_debug("%s()\n", __func__);
+
+#if 0
+	/*
+	 * (+)dragonball test Audience emulator.
+	 * You should delete this line normal release. Don't forget this one
+	 */
+	msleep(2000);
+	pr_info("##########################################################\n");
+	pr_info("# WARNING msm_snddev_PCM_call_route_config WARNING\n");
+	pr_info("# Audience emulator. DO NOT FORGET BELOW.\n");
+	pr_info("# You should delete this line normal release.\n");
+	pr_info("# WARNING WARNING WARNING WARNING WARNING WARNING\n");
+	pr_info("##########################################################\n");
+	gpio_direction_output(35, 1); /* sda_pin */
+	gpio_direction_output(36, 1); /* scl_pin */
+	/* gpio_set_value(123, 0); */
+	/* gpio_set_value(122, 0); */
+#endif
+
+	a2220_ioctl2(A2220_SET_CONFIG , A2220_PATH_SUSPEND);
+	gpio_set_value(GPIO_SELECT_I2S_AUDIENCE_QTR, 1);
+	pr_debug("[AUD] QTR Path\n");
+
+#ifdef AUDIENCE_BYPASS
+	/* (+)dragonball Multimedia bypass */
+	if (get_hw_rev() < 0x05) {
+		mdelay(5);
+		a2220_ioctl2(A2220_SET_CONFIG , A2220_PATH_BYPASS_MULTIMEDIA);
+	}
+#endif
+
+	return;
+}
+
+void msm_snddev_audience_call_route_speaker_config(void)
+{
+	pr_info("%s()\n", __func__);
+
+#if defined(CONFIG_USA_MODEL_SGH_T989)
+	/* defined(AUDIENCE_SUSPEND) enabling the H/W bypass */
+	pr_debug("%s: dualmic disabled\n", __func__);
+	return ;
+#endif
+
+	/* switch to I2S audience */
+	gpio_set_value(GPIO_SELECT_I2S_AUDIENCE_QTR, 0);
+	a2220_ioctl2(A2220_SET_CONFIG , A2220_PATH_INCALL_SPEAKER);
+	pr_debug("[AUD] AUD Path\n");
+
+	return;
+}
+
+void msm_snddev_audience_call_route_speaker_deconfig(void)
+{
+	pr_debug("%s()\n", __func__);
+
+	a2220_ioctl2(A2220_SET_CONFIG , A2220_PATH_SUSPEND);
+	/* switch to I2S QTR */
+	gpio_set_value(GPIO_SELECT_I2S_AUDIENCE_QTR, 1);
+	pr_debug("[AUD] QTR Path\n");
+
+#ifdef AUDIENCE_BYPASS
+	if (get_hw_rev() < 0x05) {
+		mdelay(5);
+		a2220_ioctl2(A2220_SET_CONFIG , A2220_PATH_BYPASS_MULTIMEDIA);
+	}
+#endif
+
+	return;
+}
+#endif
 
 static int msm_snddev_enable_dmic_power(void)
 {
@@ -259,6 +436,7 @@ static void msm_snddev_disable_dmic_power(void)
 
 #define PM8901_MPP_3 (2) /* PM8901 MPP starts from 0 */
 
+#ifndef CONFIG_SENSORS_YDA165
 static int config_class_d0_gpio(int enable)
 {
 	int rc;
@@ -323,17 +501,36 @@ static int config_class_d1_gpio(int enable)
 	}
 	return 0;
 }
+#endif
 
 static atomic_t pamp_ref_cnt;
 
-static int msm_snddev_poweramp_on(void)
+#ifdef CONFIG_VP_A2220
+static int msm_snddev_audience_speaker_on(void)
 {
+#ifndef CONFIG_SENSORS_YDA165
 	int rc;
+#endif
+
+	msm_snddev_audience_call_route_speaker_config();
+
+	pr_debug("%s: enable msm_snddev_audience_speaker_on\n", __func__);
 
 	if (atomic_inc_return(&pamp_ref_cnt) > 1)
 		return 0;
 
 	pr_debug("%s: enable stereo spkr amp\n", __func__);
+
+#ifdef CONFIG_SENSORS_YDA165
+#if defined(CONFIG_USA_MODEL_SGH_T989)\
+|| defined(CONFIG_USA_MODEL_SGH_I727)\
+|| defined(CONFIG_USA_MODEL_SGH_I717)
+	yda165_speaker_call_onoff(1);
+#else
+	yda165_speaker_onoff(1);
+#endif
+	return 0;
+#else
 	rc = config_class_d0_gpio(1);
 	if (rc) {
 		pr_err("%s: d0 gpio configuration failed\n", __func__);
@@ -346,17 +543,150 @@ static int msm_snddev_poweramp_on(void)
 	}
 config_gpio_fail:
 	return rc;
+#endif
+}
+
+static void msm_snddev_audience_speaker_off(void)
+{
+	pr_debug("%s: disable msm_snddev_audience_speaker_off\n", __func__);
+
+	msm_snddev_audience_call_route_speaker_deconfig();
+
+	if (atomic_dec_return(&pamp_ref_cnt) == 0) {
+		pr_debug("%s: disable stereo spkr amp\n", __func__);
+#ifdef CONFIG_SENSORS_YDA165
+#if defined(CONFIG_USA_MODEL_SGH_T989)\
+|| defined(CONFIG_USA_MODEL_SGH_I727)\
+|| defined(CONFIG_USA_MODEL_SGH_I717)
+		yda165_speaker_call_onoff(0);
+#else
+		yda165_speaker_onoff(0);
+#endif
+#else
+		config_class_d0_gpio(0);
+		config_class_d1_gpio(0);
+		msleep(30);
+#endif
+	}
+}
+#endif
+
+/* temp block for build error || defined(CONFIG_USA_MODEL_SGH_I717) */
+#if defined(CONFIG_USA_MODEL_SGH_T989) || defined(CONFIG_USA_MODEL_SGH_I727)
+static int msm_snddev_poweramp_handset_on(void)
+{
+	pr_info("%s: enable handset amp\n", __func__);
+#ifdef CONFIG_VP_A2220
+	a2220_ioctl2(A2220_SET_CONFIG , A2220_PATH_SUSPEND);
+	/* switch  to I2S QTR */
+	gpio_set_value(GPIO_SELECT_I2S_AUDIENCE_QTR, 1);
+	pr_debug("[AUD] QTR Path\n");
+#endif
+
+	return 0;
+}
+
+static void msm_snddev_poweramp_handset_off(void)
+{
+	pr_info("%s: disable handset amp\n", __func__);
+}
+#endif
+
+static int msm_snddev_poweramp_on(void)
+{
+#ifndef CONFIG_SENSORS_YDA165
+	int rc;
+#endif
+
+	pr_info("%s: enable stereo spkr amp\n", __func__);
+
+	if (atomic_inc_return(&pamp_ref_cnt) > 1)
+		return 0;
+
+	pr_debug("%s: enable stereo spkr amp\n", __func__);
+#ifdef CONFIG_SENSORS_YDA165
+	yda165_speaker_onoff(1);
+	return 0;
+#else
+	rc = config_class_d0_gpio(1);
+	if (rc) {
+		pr_err("%s: d0 gpio configuration failed\n", __func__);
+		goto config_gpio_fail;
+	}
+	rc = config_class_d1_gpio(1);
+	if (rc) {
+		pr_err("%s: d1 gpio configuration failed\n", __func__);
+		goto config_gpio_fail;
+	}
+config_gpio_fail:
+	return rc;
+#endif
 }
 
 static void msm_snddev_poweramp_off(void)
 {
+	pr_info("%s: disable stereo spkr amp\n", __func__);
+
 	if (atomic_dec_return(&pamp_ref_cnt) == 0) {
 		pr_debug("%s: disable stereo spkr amp\n", __func__);
+#ifdef CONFIG_SENSORS_YDA165
+		yda165_speaker_onoff(0);
+#else
 		config_class_d0_gpio(0);
 		config_class_d1_gpio(0);
 		msleep(30);
+#endif
 	}
 }
+
+#if defined(CONFIG_NOISE_REDUCE_FOR_WIFI_ON)
+static int msm_snddev_differential_poweramp_on(void)
+{
+#ifndef CONFIG_SENSORS_YDA165
+	int rc;
+#endif
+
+	pr_info("%s: enable mono spkr amp\n", __func__);
+
+	if (atomic_inc_return(&pamp_ref_cnt) > 1)
+		return 0;
+
+	pr_debug("%s: enable mono spkr amp\n", __func__);
+#ifdef CONFIG_SENSORS_YDA165
+	yda165_differential_speaker_onoff(1); // Input stereo -> mono
+	return 0;
+#else
+	rc = config_class_d0_gpio(1);
+	if (rc) {
+		pr_err("%s: d0 gpio configuration failed\n", __func__);
+		goto config_gpio_fail;
+	}
+	rc = config_class_d1_gpio(1);
+	if (rc) {
+		pr_err("%s: d1 gpio configuration failed\n", __func__);
+		goto config_gpio_fail;
+	}
+config_gpio_fail:
+	return rc;
+#endif
+}
+
+static void msm_snddev_differential_poweramp_off(void)
+{
+	pr_info("%s: disable mono spkr amp\n", __func__);
+
+	if (atomic_dec_return(&pamp_ref_cnt) == 0) {
+		pr_debug("%s: disable mono spkr amp\n", __func__);
+#ifdef CONFIG_SENSORS_YDA165
+		yda165_differential_speaker_onoff(0); // Input stereo -> mono
+#else
+		config_class_d0_gpio(0);
+		config_class_d1_gpio(0);
+		msleep(30);
+#endif
+	}
+}
+#endif
 
 /* Regulator 8058_l10 supplies regulator 8058_ncp. */
 static struct regulator *snddev_reg_ncp;
