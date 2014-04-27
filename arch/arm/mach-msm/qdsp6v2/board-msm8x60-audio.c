@@ -1046,7 +1046,7 @@ static atomic_t preg_ref_cnt;
 
 static int msm_snddev_voltage_on(void)
 {
-	int rc;
+	int rc = 0;
 	pr_debug("%s\n", __func__);
 
 	if (atomic_inc_return(&preg_ref_cnt) > 1)
