@@ -3922,7 +3922,7 @@ unsigned char hdmi_is_primary;
 #define MSM_FB_OVERLAY1_WRITEBACK_SIZE (0)
 #endif  /* CONFIG_FB_MSM_OVERLAY1_WRITEBACK */
 
-#define MSM_PMEM_KERNEL_EBI1_SIZE  0x0 //  0x3BC000 -> 0x0 Not used region
+#define MSM_PMEM_KERNEL_EBI1_SIZE  0x3BC000
 #ifndef CONFIG_SEC_KERNEL_REBASE_FOR_PMEM_OPTIMIZATION
 #define MSM_PMEM_ADSP_SIZE         0x4200000
 #else
@@ -3970,17 +3970,22 @@ unsigned char hdmi_is_primary;
 
 #define MSM_ION_SF_SIZE		0x4000000 /* 64MB */
 #define MSM_ION_CAMERA_SIZE	0x1200000 /* 18MB */
-#define MSM_ION_MM_FW_SIZE	0x200000 /* (2MB) */
 #if defined (CONFIG_FB_MSM_MIPI_S6E8AA0_HD720_PANEL)
 #define MSM_ION_WB_SIZE 	0x1700000 /* 23MB */
 #else
 #define MSM_ION_WB_SIZE		0x1400000 /* 20MB */
 #endif
+#ifdef CONFIG_QSEECOM
 #define MSM_ION_QSECOM_SIZE	0x600000 /* (6MB) */
+#endif
 #define MSM_ION_AUDIO_SIZE	MSM_PMEM_AUDIO_SIZE
 
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
+#ifdef CONFIG_QSEECOM
 #define MSM_ION_HEAP_NUM	9
+#else
+#define MSM_ION_HEAP_NUM	8
+#endif
 #define MSM_HDMI_PRIM_ION_SF_SIZE MSM_HDMI_PRIM_PMEM_SF_SIZE
 static unsigned msm_ion_sf_size = MSM_ION_SF_SIZE;
 #else
@@ -9779,6 +9784,7 @@ struct ion_platform_heap msm8x60_heaps [] = {
 #endif
 			.extra_data = &co_ion_pdata,
 		},
+#ifdef CONFIG_QSEECOM
 		{
 			.id	= ION_QSECOM_HEAP_ID,
 			.type	= ION_HEAP_TYPE_CARVEOUT,
@@ -9787,6 +9793,7 @@ struct ion_platform_heap msm8x60_heaps [] = {
 			.memory_type = ION_EBI_TYPE,
 			.extra_data = (void *) &co_ion_pdata,
 		},
+#endif
 		{
 			.id	= ION_AUDIO_HEAP_ID,
 			.type	= ION_HEAP_TYPE_CARVEOUT,
@@ -9883,7 +9890,9 @@ static void __init reserve_ion_memory(void)
 	msm8x60_reserve_table[MEMTYPE_PMEM_ADSP].size += MSM_ION_CAMERA_SIZE;
 	msm8x60_reserve_table[MEMTYPE_PMEM_ADSP].size += MSM_ION_WB_SIZE;
 #endif
+#ifdef CONFIG_QSEECOM
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_QSECOM_SIZE;
+#endif
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_AUDIO_SIZE;
 #endif
 }
