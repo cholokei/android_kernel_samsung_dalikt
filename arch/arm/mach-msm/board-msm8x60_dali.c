@@ -155,7 +155,9 @@
 
 #include <linux/msm_ion.h>
 #include <mach/ion.h>
+#ifdef CONFIG_MSM_RTB
 #include <mach/msm_rtb.h>
+#endif
 
 #include <linux/power_supply.h>
 #include <mach/sec_battery.h>
@@ -8769,6 +8771,7 @@ static struct platform_device msm_adc_device = {
 	},
 };
 
+#ifdef CONFIG_MSM_RTB
 static struct msm_rtb_platform_data msm_rtb_pdata = {
 	.size = SZ_1M,
 };
@@ -8791,6 +8794,7 @@ static struct platform_device msm_rtb_device = {
 		.platform_data = &msm_rtb_pdata,
 	},
 };
+#endif
 
 static void pmic8058_xoadc_mpp_config(void)
 {
@@ -9642,7 +9646,9 @@ static struct platform_device *surf_devices[] __initdata = {
 #endif
 	&msm8660_device_watchdog,
 //	&msm_device_tz_log, // fix for now - by cholokei
+#ifdef CONFIG_MSM_RTB
 	&msm_rtb_device,
+#endif
 	&msm8660_iommu_domain_device,
 #if defined (CONFIG_SAMSUNG_JACK) || defined (CONFIG_SAMSUNG_EARJACK)
 	&sec_device_jack,
@@ -9940,12 +9946,12 @@ static void __init reserve_pmem_memory(void)
 
 static void __init reserve_mdp_memory(void);
 
+#ifdef CONFIG_MSM_RTB
 static void __init reserve_rtb_memory(void)
 {
-#if defined(CONFIG_MSM_RTB)
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += msm_rtb_pdata.size;
-#endif
 }
+#endif
 
 static void __init msm8x60_calculate_reserve_sizes(void)
 {
@@ -9953,7 +9959,9 @@ static void __init msm8x60_calculate_reserve_sizes(void)
 	reserve_pmem_memory();
 	reserve_ion_memory();
 	reserve_mdp_memory();
+#ifdef CONFIG_MSM_RTB
 	reserve_rtb_memory();
+#endif
 }
 
 static int msm8x60_paddr_to_memtype(unsigned int paddr)
