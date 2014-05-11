@@ -9370,6 +9370,7 @@ static struct platform_device *asoc_devices[] __initdata = {
 	&asoc_msm_dai1,
 };
 
+#ifdef CONFIG_QSEECOM
 /* qseecom bus scaling */
 static struct msm_bus_vectors qseecom_clks_init_vectors[] = {
 	{
@@ -9444,6 +9445,7 @@ static struct platform_device qseecom_device = {
 		.platform_data = &qseecom_bus_pdata,
 	},
 };
+#endif /* CONFIG_QSEECOM */
 
 static struct platform_device *surf_devices[] __initdata = {
 	&msm8x60_device_acpuclk,
@@ -9454,7 +9456,9 @@ static struct platform_device *surf_devices[] __initdata = {
 	&msm_pil_tzapps,
 	&msm_pil_dsps,
 	&msm_pil_vidc,
+#ifdef CONFIG_QSEECOM
 	&qseecom_device,
+#endif
 #ifdef CONFIG_I2C_QUP
 #if defined (CONFIG_TARGET_LOCALE_USA)
         &msm_gsbi1_qup_i2c_device,
