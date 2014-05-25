@@ -162,7 +162,9 @@
 #include <linux/power_supply.h>
 #include <mach/sec_battery.h>
 #include <linux/platform_data/fsa9480.h>
+#ifdef CONFIG_SEC_DEBUG
 #include <mach/sec_debug.h>
+#endif
 #include <mach/sec_switch.h>
 #include <linux/usb/gadget.h>
 #if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
@@ -17378,7 +17380,7 @@ static DEVICE_ATTR(sec_debug_level, S_IRUGO | S_IWUGO, show_sec_debug_level, sto
 #ifdef CONFIG_BROADCOM_WIFI
 int __init brcm_wlan_init(void);
 #endif
-#ifdef CONFIG_BATTERY_SEC
+#if defined(CONFIG_SEC_DEBUG) && defined(CONFIG_BATTERY_SEC)
 extern unsigned int sec_get_lpm_mode(void);
 #endif
 static void __init msm8x60_init(struct msm_board_data *board_data)
@@ -17392,7 +17394,7 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 	};
 #endif
 
-#ifdef CONFIG_BATTERY_SEC
+#if defined(CONFIG_SEC_DEBUG) && defined(CONFIG_BATTERY_SEC)
 	is_lpm_boot = sec_get_lpm_mode();
 #endif
 

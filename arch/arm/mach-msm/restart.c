@@ -28,6 +28,8 @@
 #include <asm/mach-types.h>
 #ifdef CONFIG_SEC_DEBUG
 #include <mach/sec_debug.h>  // onlyjazz
+#endif
+#ifdef CONFIG_SAMSUNG_MSM8660_DEVICES
 #include <linux/notifier.h> // klaatu
 #include <linux/ftrace.h> // klaatu
 #endif
@@ -278,7 +280,7 @@ void msm_restart(char mode, const char *cmd)
 
 #ifdef CONFIG_MSM_DLOAD_MODE
 
-#ifdef CONFIG_SAMSUNG_MSM8660_DEVICES // klaatu
+#ifdef CONFIG_SEC_DEBUG // klaatu
 	if( sec_debug_is_enabled() && ((restart_mode == RESTART_DLOAD) || in_panic) )
 		set_dload_mode(1);
 	else
@@ -297,8 +299,9 @@ void msm_restart(char mode, const char *cmd)
 		writel(0x6d63c421, restart_reason);
 		goto reset;
 #endif /* CONFIG_LGE_CRASH_HANDLER */
+#endif /* CONFIG_SEC_DEBUG */
 	}
-#endif /* CONFIG_SAMSUNG_MSM8660_DEVICES */
+
 
 	#if 0 /* onlyjazz.ef24 : intentionally remove it */
 	/* Kill download mode if master-kill switch is set */
@@ -435,9 +438,11 @@ static int __init msm_restart_init(void)
 #else /* CONFIG_SAMSUNG_MSM8660_DEVICES */ // klaatu
 	register_reboot_notifier(&dload_reboot_block);
 	/* Reset detection is switched on below.*/
+#ifdef CONFIG_SEC_DEBUG
 	if( sec_debug_is_enabled() )
 		set_dload_mode(1);
 	else
+#endif
 		set_dload_mode(0);
 #endif /* CONFIG_SAMSUNG_MSM8660_DEVICES */
 #endif /* CONFIG_MSM_DLOAD_MODE */

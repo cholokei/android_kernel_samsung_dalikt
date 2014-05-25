@@ -257,7 +257,9 @@ void EnableFSA9480Interrupts(void)
 	
 } 
 
+#ifdef CONFIG_SEC_DEBUG
 extern unsigned int sec_get_lpm_mode(void);
+#endif
 void FSA9480_CheckAndHookAudioDock(int value, int onoff)
 {
 	struct i2c_client *client = chip->client;
@@ -272,6 +274,7 @@ void FSA9480_CheckAndHookAudioDock(int value, int onoff)
 	{
 		if (onoff)
 		{
+#ifdef CONFIG_SEC_DEBUG
 			//skip controlling the sii9234 on lpm mode
 			if(!sec_get_lpm_mode())
 			{
@@ -282,6 +285,7 @@ void FSA9480_CheckAndHookAudioDock(int value, int onoff)
 #endif
 				gpio_set_value_cansleep(GPIO_MHL_SEL, 0);
 			}
+#endif /* CONFIG_SEC_DEBUG */
 
 			ret = i2c_smbus_read_byte_data(client,FSA9480_REG_CTRL);
 
