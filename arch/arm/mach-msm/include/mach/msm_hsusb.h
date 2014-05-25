@@ -204,9 +204,4 @@ struct msm_usb_host_platform_data {
 	struct clk *ebi1_clk;
 };
 
-#if defined(CONFIG_USB_MSM_72K) && defined(CONFIG_CONSOLE_POLL)
-struct usb_ep;
-int usb_loop_poll_hw(struct usb_ep *_ept, int is_rx);
-#endif /* CONFIG_USB_MSM_72K && CONFIG_CONSOLE_POLL */
-
 #endif
