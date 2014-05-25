@@ -1817,9 +1817,14 @@ choice
 		bool "Reset the entire chip"
 endchoice
 
+config SAMSUNG_MSM8660_DEVICES
+	bool "Samsung MSM8660 Devices"
+	default n
+
 choice
 	prompt "TARGET SERIES"
-	default TARGET_SERIES_CELOX
+	depends on SAMSUNG_MSM8660_DEVICES
+	default TARGET_SERIES_DALI
 
 	config TARGET_SERIES_CELOX
 		bool "SERIES_CELOX"
@@ -1854,6 +1859,7 @@ endchoice
 
 choice
 	prompt "TARGET LOCALE"
+	depends on SAMSUNG_MSM8660_DEVICES
 	default TARGET_LOCALE_KOR
 
 	config TARGET_LOCALE_KOR

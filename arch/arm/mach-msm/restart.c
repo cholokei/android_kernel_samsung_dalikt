@@ -124,7 +124,7 @@ static void set_dload_mode(int on)
 #endif
 		mb();
 
-#ifdef CONFIG_SEC_DEBUG
+#ifdef CONFIG_SAMSUNG_MSM8660_DEVICES
 		// klaatu
 		pr_err("set_dload_mode <%d> ( %lX )\n", on, CALLER_ADDR0);
 #endif
@@ -278,7 +278,7 @@ void msm_restart(char mode, const char *cmd)
 
 #ifdef CONFIG_MSM_DLOAD_MODE
 
-#ifdef CONFIG_SEC_DEBUG // klaatu
+#ifdef CONFIG_SAMSUNG_MSM8660_DEVICES // klaatu
 	if( sec_debug_is_enabled() && ((restart_mode == RESTART_DLOAD) || in_panic) )
 		set_dload_mode(1);
 	else
@@ -298,7 +298,7 @@ void msm_restart(char mode, const char *cmd)
 		goto reset;
 #endif /* CONFIG_LGE_CRASH_HANDLER */
 	}
-#endif /* CONFIG_SEC_DEBUG */
+#endif /* CONFIG_SAMSUNG_MSM8660_DEVICES */
 
 	#if 0 /* onlyjazz.ef24 : intentionally remove it */
 	/* Kill download mode if master-kill switch is set */
@@ -314,7 +314,7 @@ void msm_restart(char mode, const char *cmd)
 
 	if (cmd != NULL) {
 		if (!strncmp(cmd, "bootloader", 10)) {
-#ifndef CONFIG_SEC_DEBUG
+#ifndef CONFIG_SAMSUNG_MSM8660_DEVICES
 			__raw_writel(0x77665500, restart_reason);
 		} else if (!strncmp(cmd, "recovery", 8)) {
 			__raw_writel(0x77665502, restart_reason);
@@ -327,7 +327,7 @@ void msm_restart(char mode, const char *cmd)
 		}
 	} else {
 		__raw_writel(0x77665501, restart_reason);
-#else /* CONFIG_SEC_DEBUG */
+#else /* CONFIG_SAMSUNG_MSM8660_DEVICES */
 			__raw_writel(RESTART_FASTBOOT_MODE, restart_reason);
 		} else if (!strncmp(cmd, "recovery", 8)) {
 			__raw_writel(RESTART_RECOVERY_MODE, restart_reason);
@@ -350,7 +350,7 @@ void msm_restart(char mode, const char *cmd)
 		} else {
 			__raw_writel(RESTART_OTHERBOOT_MODE, restart_reason);
 		}
-#endif /* CONFIG_SEC_DEBUG */
+#endif /* CONFIG_SAMSUNG_MSM8660_DEVICES */
 	}
 #ifdef CONFIG_LGE_CRASH_HANDLER
 	if (in_panic == 1)
@@ -358,7 +358,7 @@ void msm_restart(char mode, const char *cmd)
 reset:
 #endif /* CONFIG_LGE_CRASH_HANDLER */
 
-#ifdef CONFIG_SEC_DEBUG
+#ifdef CONFIG_SAMSUNG_MSM8660_DEVICES
 	else {
 		writel(0x12345678, restart_reason);    /* clear abnormal reset flag */
 	}
@@ -383,7 +383,7 @@ reset:
 	printk(KERN_ERR "Restarting has failed\n");
 }
 
-#ifdef CONFIG_SEC_DEBUG // klaatu
+#ifdef CONFIG_SAMSUNG_MSM8660_DEVICES // klaatu
 
 static int dload_mode_normal_reboot_handler(struct notifier_block *nb,
 				unsigned long l, void *p)
@@ -426,20 +426,20 @@ static int __init msm_restart_init(void)
 #ifdef CONFIG_MSM_DLOAD_MODE
 	atomic_notifier_chain_register(&panic_notifier_list, &panic_blk);
 	dload_mode_addr = MSM_IMEM_BASE + DLOAD_MODE_ADDR;
-#ifndef CONFIG_SEC_DEBUG
+#ifndef CONFIG_SAMSUNG_MSM8660_DEVICES
 #ifdef CONFIG_LGE_CRASH_HANDLER
 	lge_error_handler_cookie_addr = MSM_IMEM_BASE +
 		LGE_ERROR_HANDLER_MAGIC_ADDR;
 #endif
 	set_dload_mode(download_mode);
-#else /* CONFIG_SEC_DEBUG */ // klaatu
+#else /* CONFIG_SAMSUNG_MSM8660_DEVICES */ // klaatu
 	register_reboot_notifier(&dload_reboot_block);
 	/* Reset detection is switched on below.*/
 	if( sec_debug_is_enabled() )
 		set_dload_mode(1);
 	else
 		set_dload_mode(0);
-#endif /* CONFIG_SEC_DEBUG */
+#endif /* CONFIG_SAMSUNG_MSM8660_DEVICES */
 #endif /* CONFIG_MSM_DLOAD_MODE */
 	msm_tmr0_base = msm_timer_get_timer0_base();
 	restart_reason = MSM_IMEM_BASE + RESTART_REASON_ADDR;
