@@ -18,14 +18,14 @@
 
 struct fsa9480_platform_data {
 	void (*cfg_gpio) (void);
-	void (*otg_cb) (u8 attached);
-	void (*usb_cb) (u8 attached);
-	void (*uart_cb) (u8 attached);
-	void (*charger_cb) (u8 attached);
-	void (*jig_cb) (u8 attached);
-	void (*deskdock_cb) (u8 attached);
-	void (*cardock_cb) (u8 attached);
-	void (*mhl_cb) (u8 attached);
+	void (*otg_cb) (bool attached);
+	void (*usb_cb) (bool attached);
+	void (*uart_cb) (bool attached);
+	void (*charger_cb) (bool attached);
+	void (*jig_cb) (bool attached);
+	void (*deskdock_cb) (bool attached);
+	void (*cardock_cb) (bool attached);
+	void (*mhl_cb) (bool attached);
 	void (*reset_cb) (void);
 	void (*set_init_flag) (void);
 	void (*usb_power) (u8 on);
