@@ -299,9 +299,8 @@ void msm_restart(char mode, const char *cmd)
 		writel(0x6d63c421, restart_reason);
 		goto reset;
 #endif /* CONFIG_LGE_CRASH_HANDLER */
-#endif /* CONFIG_SEC_DEBUG */
 	}
-
+#endif /* CONFIG_SEC_DEBUG */
 
 	#if 0 /* onlyjazz.ef24 : intentionally remove it */
 	/* Kill download mode if master-kill switch is set */
