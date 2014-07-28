@@ -3926,7 +3926,7 @@ unsigned char hdmi_is_primary;
 #define MSM_FB_OVERLAY1_WRITEBACK_SIZE (0)
 #endif  /* CONFIG_FB_MSM_OVERLAY1_WRITEBACK */
 
-#define MSM_CONTIG_MEM_SIZE  0x3BC000
+#define MSM_CONTIG_MEM_SIZE  0x0 //  0x3BC000 -> 0x0 Not used region
 #ifndef CONFIG_SEC_KERNEL_REBASE_FOR_PMEM_OPTIMIZATION
 #define MSM_PMEM_ADSP_SIZE         0x4200000
 #else
