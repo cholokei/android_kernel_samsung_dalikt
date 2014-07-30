@@ -717,10 +717,10 @@ config SENSORS_K3DH
 	  Driver for STMicroelectronic K3DH accelerometer.
 
 config SEC_MISC
-	bool "Samsung CELOX series miscellaneous driver"
+	bool "Samsung MSM8660 series miscellaneous driver"
 	default n
 	---help---
-	  Samsung CELOX series miscellaneous driver
+	  Samsung MSM8660 series miscellaneous driver
 
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
@@ -731,6 +731,12 @@ source "drivers/misc/lis3lv02d/Kconfig"
 source "drivers/misc/carma/Kconfig"
 source "drivers/misc/altera-stapl/Kconfig"
 source "drivers/misc/slimport_anx7808/Kconfig"
+
+config VIBETONZ
+	tristate "Vibetonz"
+	default m
+	help
+	  Say Y to enable Vibetonz support.
 
 config STMPE811_ADC
 	bool "stmpe811 adc driver"
