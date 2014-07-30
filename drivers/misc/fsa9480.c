@@ -838,7 +838,7 @@ static ssize_t fsa9480_reset(struct fsa9480_usbsw *usbsw, int reset)
 static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw, int intr)
 {
 	int ret;
-	int val1, val2, ctrl, adc;
+	int val1, val2, ctrl;
 	struct fsa9480_platform_data *pdata = usbsw->pdata;
 	struct i2c_client *client = usbsw->client;
 #if defined(CONFIG_VIDEO_MHL_V2)
@@ -848,7 +848,6 @@ static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw, int intr)
 	val1 = fsa9480_read_reg(client, FSA9480_REG_DEV_T1);
 	val2 = fsa9480_read_reg(client, FSA9480_REG_DEV_T2);
 	ctrl = fsa9480_read_reg(client, FSA9480_REG_CTRL);
-	adc = fsa9480_read_reg(client, FSA9480_REG_ADC);
 
 	dev_info(&client->dev, "intr: 0x%x, dev1: 0x%x, dev2: 0x%x\n",
 			intr, val1, val2);

@@ -772,27 +772,6 @@ static bool hdmi_ready(void)
 					hdmi_msm_state->hpd_initialized;
 }
 
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) \
-		|| defined(CONFIG_VIDEO_MHL_TAB_V2)
-void mhl_hpd_handler(bool state)
-{
-	pr_info("mhl_hpd_handler with state as %d\n", state);
-	hdmi_msm_state->mhl_hpd_state = state;
-	hdmi_msm_state->hpd_cable_chg_detected = TRUE;
-	hdmi_msm_state->hpd_on_offline = state;
-
-	if (state && hdmi_msm_state->boot_completion) {
-		/*To make sure that the previous
-		 disconnect event handling  is completed.*/
-		msleep(20);
-		hdmi_msm_hpd_on();
-	} else if (!hdmi_msm_state->boot_completion) {
-		pr_err("hdmi_msm_state->boot_completion = %d\n",
-			hdmi_msm_state->boot_completion);
-	}
-}
-#endif
-
 static void hdmi_msm_send_event(boolean on)
 {
 	char *envp[2];
@@ -833,64 +812,12 @@ static void hdmi_msm_send_event(boolean on)
 
 static void hdmi_msm_hpd_state_work(struct work_struct *work)
 {
-	boolean hpd_state;
 	if (!hdmi_ready()) {
 		DEV_ERR("hdmi: %s: ignored, probe failed\n", __func__);
 		return;
 	}
 
-	mutex_lock(&hdmi_msm_state_mutex);
-	DEV_DBG("%s: Handling HPD event in the workqueue\n", __func__);
-
-	if (!hdmi_msm_state->hpd_cable_chg_detected) {
-		/* The work item got called from outside the ISR */
-		mutex_unlock(&hdmi_msm_state_mutex);
-		if (external_common_state->hpd_state) {
-			if (!external_common_state->
-					disp_mode_list.num_of_elements)
-				hdmi_msm_read_edid();
-		}
-	} else {
-		hdmi_msm_state->hpd_cable_chg_detected = FALSE;
-		mutex_unlock(&hdmi_msm_state_mutex);
-		mutex_lock(&external_common_state_hpd_mutex);
-		/*
-		 * Handle the connect event only if the cable is
-		 * still connected. This check is needed for the case
-		 * where we get a connect event followed by a disconnect
-		 * event in quick succession. In this case, there is no need
-		 * to process the connect event.
-		 */
-		if ((external_common_state->hpd_state) &&
-				!((HDMI_INP(0x0250) & 0x2) >> 1)) {
-			external_common_state->hpd_state = 0;
-			hdmi_msm_state->hpd_state_in_isr = 0;
-			mutex_unlock(&external_common_state_hpd_mutex);
-			DEV_DBG("%s: Ignoring HPD connect event\n", __func__);
-			return;
-		}
-		mutex_unlock(&external_common_state_hpd_mutex);
-		hdmi_msm_send_event(external_common_state->hpd_state);
-	}
-
-	/*
-	 * Wait for a short time before checking for
-	 * any changes in the connection status
-	 */
-	udelay(100);
-
-	mutex_lock(&external_common_state_hpd_mutex);
-	/* HPD_INT_STATUS[0x0250] */
-	hpd_state = (HDMI_INP(0x0250) & 0x2) >> 1;
-
-	if (external_common_state->hpd_state != hpd_state) {
-		external_common_state->hpd_state = hpd_state;
-		hdmi_msm_state->hpd_state_in_isr = hpd_state;
-		mutex_unlock(&external_common_state_hpd_mutex);
-		hdmi_msm_send_event(hpd_state);
-	} else {
-		mutex_unlock(&external_common_state_hpd_mutex);
-	}
+	hdmi_msm_send_event(external_common_state->hpd_state);
 }
 
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL_CEC_SUPPORT
@@ -4904,11 +4831,7 @@ static int hdmi_msm_hpd_feature(int on)
 
 	DEV_INFO("%s: %d\n", __func__, on);
 	if (on) {
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || \
-	defined(CONFIG_VIDEO_MHL_TAB_V2)
-		if (hdmi_msm_state->mhl_hpd_state)
-#endif
-			rc = hdmi_msm_hpd_on();
+		rc = hdmi_msm_hpd_on();
 	} else {
 		if (external_common_state->hpd_state) {
 			/* Send offline event to switch OFF HDMI and HAL FD */
