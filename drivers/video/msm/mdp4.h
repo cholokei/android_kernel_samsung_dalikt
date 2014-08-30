@@ -583,6 +583,7 @@ void mdp4_overlay0_done_dsi_cmd(int cndx);
 void mdp4_primary_rdptr(void);
 void mdp4_dsi_cmd_overlay(struct msm_fb_data_type *mfd);
 int mdp4_overlay_commit(struct fb_info *info);
+void mdp4_overlay_commit_finish(struct fb_info *info);
 int mdp4_lcdc_pipe_commit(int cndx, int wait);
 int mdp4_dsi_cmd_update_cnt(int cndx);
 void mdp4_dsi_rdptr_init(int cndx);
@@ -821,7 +822,7 @@ void mdp4_dsi_video_pipe_queue(int cndx, struct mdp4_overlay_pipe *pipe);
 void mdp4_dsi_cmd_vsync_ctrl(struct fb_info *info, int enable);
 void mdp4_dsi_video_vsync_ctrl(struct fb_info *info, int enable);
 int mdp4_dsi_video_pipe_commit(int cndx, int wait);
-int mdp4_dsi_cmd_pipe_commit(int cndx, int wait);
+int mdp4_dsi_cmd_pipe_commit(int cndx, int wait, u32 *release_busy);
 #ifdef CONFIG_FB_MSM_MDP303
 static inline void mdp4_dsi_cmd_del_timer(void)
 {
@@ -891,7 +892,7 @@ static inline int mdp4_dsi_video_pipe_commit(int cndx, int wait)
 {
 	return 0;
 }
-static inline int mdp4_dsi_cmd_pipe_commit(int cndx, int wait)
+static inline int mdp4_dsi_cmd_pipe_commit(int cndx, int wait, u32 *release_busy)
 {
 	return 0;
 }
