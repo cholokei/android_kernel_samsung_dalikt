@@ -3508,6 +3508,28 @@ int mdp4_overlay_get(struct fb_info *info, struct mdp_overlay *req)
 	return 0;
 }
 
+#if defined(CONFIG_TDMB) || defined(CONFIG_TDMB_MODULE)
+extern int DMB_Qseed_change;
+extern int SharpValue;
+static int which_pipe_for_DMB = 0;
+
+void sharpness_tuneT(int num, int pipe_num)		
+{
+	char *vg_base;
+	if(pipe_num == 0) 
+		vg_base = MDP_BASE + MDP4_VIDEO_BASE; 
+	else if(pipe_num == 1) 
+		vg_base = MDP_BASE + MDP4_VIDEO_BASE + 0x10000;
+	else
+		vg_base = MDP_BASE + MDP4_VIDEO_BASE; 
+
+	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE); 
+	outpdw(vg_base + 0x8200, mdp4_ss_table_value((int8_t)num, 0)); 
+	outpdw(vg_base + 0x8204, mdp4_ss_table_value((int8_t)num, 1)); 
+	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE); 
+}
+#endif
+
 int mdp4_overlay_set(struct fb_info *info, struct mdp_overlay *req)
 {
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
@@ -3553,6 +3575,32 @@ int mdp4_overlay_set(struct fb_info *info, struct mdp_overlay *req)
 		mdp4_map_sec_resource(mfd);
 		mfd->sec_active = TRUE;
 	}
+
+#if defined(CONFIG_TDMB) || defined(CONFIG_TDMB_MODULE)
+	if (mixer == MDP4_MIXER0 && DMB_Qseed_change == 1) {
+		if(pipe->pipe_num == OVERLAY_PIPE_VG1) {
+			printk("### vg 1\n");
+			which_pipe_for_DMB = 1;
+		} else if(pipe->pipe_num == OVERLAY_PIPE_VG2) {
+			printk("### vg 2\n");
+			which_pipe_for_DMB = 2;
+		}
+		if(which_pipe_for_DMB) {
+			printk("### call mdp4_vg_qseed_init_DMB\n");
+			mdp4_vg_qseed_init_DMB(which_pipe_for_DMB-1);
+			sharpness_tuneT(SharpValue, (which_pipe_for_DMB-1)); 
+			DMB_Qseed_change = 0;		
+
+		}
+	}
+
+	if(DMB_Qseed_change == 2 && which_pipe_for_DMB > 0) {		
+		printk("### call mdp4_vg_qseed_init_VideoPlay\n");
+		mdp4_vg_qseed_init_VideoPlay(which_pipe_for_DMB-1);
+		DMB_Qseed_change = 0;
+		which_pipe_for_DMB = 0;
+	}
+#endif
 
 	/* return id back to user */
 	req->id = pipe->pipe_ndx;	/* pipe_ndx start from 1 */
