@@ -3244,11 +3244,13 @@ static void a3xx_start(struct adreno_device *adreno_dev)
 		adreno_regwrite(device, A3XX_RBBM_GPR0_CTL,
 			A330_RBBM_GPR0_CTL_DEFAULT);
 
+#ifdef CONFIG_MSM_OCMEM
 	/* Set the OCMEM base address for A330 */
 	if (adreno_is_a330(adreno_dev)) {
 		adreno_regwrite(device, A3XX_RB_GMEM_BASE_ADDR,
 			(unsigned int)(adreno_dev->ocmem_base >> 14));
 	}
+#endif
 	/* Turn on protection */
 	a3xx_protect_init(device);
 

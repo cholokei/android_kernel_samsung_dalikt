@@ -17,7 +17,9 @@
 #include "adreno_drawctxt.h"
 #include "adreno_ringbuffer.h"
 #include "kgsl_iommu.h"
+#ifdef CONFIG_MSM_OCMEM
 #include <mach/ocmem.h>
+#endif
 
 #include "a3xx_reg.h"
 
@@ -112,8 +114,10 @@ struct adreno_device {
 	unsigned int long_ib_ts;
 	unsigned int ft_pf_policy;
 	unsigned int gpulist_index;
+#ifdef CONFIG_MSM_OCMEM
 	struct ocmem_buf *ocmem_hdl;
 	unsigned int ocmem_base;
+#endif
 	unsigned int gpu_cycles;
 };
 
