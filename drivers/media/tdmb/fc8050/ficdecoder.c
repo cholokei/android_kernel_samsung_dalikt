@@ -926,7 +926,7 @@ int fig0_ext13_decoder(u8 *fibBuffer, int figLength, int pd)
 		sta = fibBuffer[readcnt++];
 
 		/* SCIdS = (sta & 0xff00) >> 4; */
-		NumOfUAs = sta & 0x0f;
+		NumOfUAs = sta & 0xff;
 
 		/* Because of Visual Radio */
 		svc_info->num_of_user_appl = NumOfUAs;
@@ -940,11 +940,6 @@ int fig0_ext13_decoder(u8 *fibBuffer, int figLength, int pd)
 
 			/* Because of Visual Radio */
 			UAlen = sta & 0x1f;
-
-			if (UAlen > 24) {
-				/* print_log(NULL, "UAlen Err= %d, ", UAlen); */
-				UAlen = 24;
-			}
 
 			svc_info->user_appl_type[i] = UAtype;
 			svc_info->user_appl_length[i] = UAlen;

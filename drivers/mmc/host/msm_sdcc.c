@@ -3137,9 +3137,6 @@ static void msmsdcc_msm_bus_cancel_work_and_set_vote(
 	unsigned int bw;
 	int vote;
 
-	if(host->plat->is_sdio_al_client)
-		return;
-		
 	if (!host->msm_bus_vote.client_handle)
 		return;
 
@@ -6443,13 +6440,7 @@ msmsdcc_runtime_suspend(struct device *dev)
 		goto out;
 	}
 
-	if (host->pdev_id == 4) {
-		host->mmc->pm_flags |= MMC_PM_KEEP_POWER;
-		printk(KERN_INFO "%s: Enter WIFI suspend\n", __func__);
-	}
-
 	pr_debug("%s: %s: start\n", mmc_hostname(mmc), __func__);
-
 	if (mmc) {
 		host->sdcc_suspending = 1;
 		mmc->suspend_task = current;
