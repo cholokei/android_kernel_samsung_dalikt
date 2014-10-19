@@ -26,9 +26,8 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#ifndef __ARCH_ARM_MACH_MSM_DEVICES_MSM8X60_H
-#define __ARCH_ARM_MACH_MSM_DEVICES_MSM8X60_H
 
+#define MSM_FG_SMB_I2C_BUS_ID 15
 #define MSM_GSBI3_QUP_I2C_BUS_ID 0
 #define MSM_GSBI4_QUP_I2C_BUS_ID 1
 #define MSM_GSBI9_QUP_I2C_BUS_ID 2
@@ -155,5 +154,4 @@ extern struct platform_device msm_dsps_device;
 
 #if defined(CONFIG_MSM_RPM_STATS_LOG)
 extern struct platform_device msm_rpm_stat_device;
-#endif
 #endif
