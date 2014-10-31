@@ -31,7 +31,9 @@ brightness-update has effect after return of it.
 solution :
 reschedule 'first set_backlight()'
 */
+#if 0
 #define FEATURE_BRIGHTNESS_DELAY_AFTER_WAKEUP
+#endif
 #ifdef FEATURE_BRIGHTNESS_DELAY_AFTER_WAKEUP
 #include <linux/workqueue.h>
 #endif 
