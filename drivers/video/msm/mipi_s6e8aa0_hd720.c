@@ -115,7 +115,6 @@ struct lcd_setting {
 	struct lcd_device		*ld;
 	struct backlight_device		*bd;
 	struct lcd_platform_data	*lcd_pd;
-	struct early_suspend    early_suspend;
 	struct lcd_state_type lcd_state;
 	char	lcd_id_buffer[LCD_ID_BUFFER_SIZE];
 	enum lcd_id_value	factory_id_line;
@@ -1029,12 +1028,6 @@ static int lcd_off(struct platform_device *pdev)
 {
 	struct msm_fb_data_type *mfd;
 
-//#if def CONFIG_HAS_EARLYSUSPEND
-#if 0 // for recovery ICS (andre.b.kim)
-	DPRINT("%s : to be early_suspend. return.\n", __func__);
-	return 0;
-#endif 
-
     DPRINT("%s +\n", __func__);
 
 	mfd = platform_get_drvdata(pdev);
@@ -1177,11 +1170,9 @@ static void lcd_set_brightness(struct msm_fb_data_type *mfd, int gamma_level)
 	lcd_set_elvss(mfd, &s6e8aa0_lcd);
 	lcd_set_acl(mfd, &s6e8aa0_lcd);
 	
-#if !defined(CONFIG_HAS_EARLYSUSPEND)
 	if (s6e8aa0_lcd.lcd_gamma <= LCD_OFF_GAMMA_VALUE) {
 		lcd_off_seq( mfd );	// brightness = 0 -> LCD Off 
 	}
-#endif 
 
 	//TODO: unlock
 	//spin_unlock_irqrestore(&bl_ctrl_lock, irqflags);
@@ -1776,24 +1767,6 @@ static DEVICE_ATTR(auto_brightness, 0664,
 
 
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void early_suspend(struct early_suspend *h) 
-{
-	DPRINT("%s +\n", __func__);
-	lcd_off_seq(pMFD);
-	DPRINT("%s -\n", __func__);
-
- return;
-}
-
-static void late_resume(struct early_suspend *h) 
-{
-	DPRINT("%s\n", __func__);
-	lcd_on_seq(pMFD);
-	return;
-}
-#endif
-
 #ifdef FEATURE_BRIGHTNESS_DELAY_AFTER_WAKEUP
 static void sec_lcd_work_func(struct work_struct *work)
 {
@@ -1852,13 +1825,6 @@ static int __devinit lcd_probe(struct platform_device *pdev)
 	s6e8aa0_lcd.auto_brightness = 0;
 #endif
 	mutex_init( &(s6e8aa0_lcd.lock) );
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	 s6e8aa0_lcd.early_suspend.suspend = early_suspend;
-	 s6e8aa0_lcd.early_suspend.resume = late_resume;
-	 s6e8aa0_lcd.early_suspend.level = LCD_OFF_GAMMA_VALUE;
-	 register_early_suspend(&s6e8aa0_lcd.early_suspend);
-#endif
 
 	DPRINT("msm_fb_add_device +\n");
 	msm_fb_add_device(pdev);
