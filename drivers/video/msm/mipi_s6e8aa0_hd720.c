@@ -20,7 +20,6 @@
 #include "mipi_dsi.h"
 #include "mipi_s6e8aa0_hd720.h"
 #include "mipi_s6e8aa0_hd720_seq.h"
-#include "mdp4_video_enhance.h"
 #include "smart_dimming.h"
 
 #include <linux/gpio.h>
@@ -1866,8 +1865,6 @@ static int __devinit lcd_probe(struct platform_device *pdev)
 		DPRINT("lcd_power failed to add sysfs entries\n");
 //		dev_err(&(pdev->dev), "failed to add sysfs entries\n");
 
-	// mdnie sysfs create
-	init_mdnie_class();
 #ifdef MAPPING_TBL_AUTO_BRIGHTNESS
 #ifdef CONFIG_BACKLIGHT_CLASS_DEVICE
     if(1){
