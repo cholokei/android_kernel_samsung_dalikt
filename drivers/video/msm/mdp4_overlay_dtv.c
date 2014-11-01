@@ -31,7 +31,10 @@
 #include "msm_fb.h"
 #include "hdmi_msm.h"
 #include "mdp4.h"
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || \
+		defined(CONFIG_VIDEO_MHL_TAB_V2)
 #include "hdmi_msm.h"
+#endif
 
 #define DTV_BASE	0xD0000
 

@@ -1252,6 +1252,7 @@ static uint32 vg_qseed_table2[] = {
 	0x00130000, 0x0ff201fb, 0x00080000, 0x0ff901ff
 };
 
+#if defined(CONFIG_TDMB) || defined(CONFIG_TDMB_MODULE)
 static uint32 vg_qseed_table2_DMB[] = {
 	0x02000000, 0x00000000, 0x01ff0ff9, 0x00000008,
 	0x01fb0ff2, 0x00000013, 0x01f50fed, 0x0ffe0020,
@@ -1797,6 +1798,7 @@ static uint32 vg_qseed_table2_DMB[] = {
 	0x0fb20fee, 0x0f46031a, 0x0f980ff3, 0x0f4b032a,
 	0x0f800ffa, 0x0f4f0337, 0x0f6d0ffe, 0x0f57033e
 };
+#endif
 
 
 #define MDP4_QSEED_TABLE0_OFF 0x8100
@@ -1853,6 +1855,7 @@ void mdp4_vg_qseed_init(int vp_num)
 
 }
 
+#if defined(CONFIG_TDMB) || defined(CONFIG_TDMB_MODULE)
 void mdp4_vg_qseed_init_VideoPlay(int vp_num)
 {
 	uint32 *off;
@@ -1914,6 +1917,7 @@ void mdp4_vg_qseed_init_DMB(int vp_num)
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 
 }
+#endif
 
 void mdp4_mixer_blend_init(mixer_num)
 {
