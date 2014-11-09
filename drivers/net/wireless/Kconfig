@@ -312,6 +312,11 @@ config WCNSS_MEM_PRE_ALLOC
 source "drivers/net/wireless/ath/Kconfig"
 source "drivers/net/wireless/b43/Kconfig"
 source "drivers/net/wireless/b43legacy/Kconfig"
+
+if SAMSUNG_MSM8660_DEVICES
+source "drivers/net/wireless/bcmdhd_samsung/Kconfig"
+endif # SAMSUNG_MSM8660_DEVICES
+
 source "drivers/net/wireless/bcmdhd/Kconfig"
 source "drivers/net/wireless/brcm80211/Kconfig"
 source "drivers/net/wireless/hostap/Kconfig"

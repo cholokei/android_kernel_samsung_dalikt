@@ -59,7 +59,14 @@ obj-$(CONFIG_IWM)	+= iwmc3200wifi/
 
 obj-$(CONFIG_MWIFIEX)	+= mwifiex/
 
+ifeq ($(CONFIG_SAMSUNG_MSM8660_DEVICES),y)
+obj-$(CONFIG_BCM4334)   += bcmdhd_samsung/
+obj-$(CONFIG_BCM4330)   += bcmdhd_samsung/
+obj-$(CONFIG_BCM43241)	+= bcmdhd_samsung/
+obj-$(CONFIG_BCM4334)   += btlock/
+else
 obj-$(CONFIG_BCMDHD)	+= bcmdhd/
+endif
 
 obj-$(CONFIG_BRCMFMAC)	+= brcm80211/
 obj-$(CONFIG_BRCMSMAC)	+= brcm80211/
