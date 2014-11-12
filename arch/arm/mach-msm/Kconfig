@@ -1998,6 +1998,8 @@ choice
 		default KOR_MODEL_SHV_E110S
 		depends on TARGET_LOCALE_KOR
 
+		config KOR_MODEL_SHV_E120S
+			bool "SHV-E120S"
 		config KOR_MODEL_SHV_E120K
 			bool "SHV-E120K"
 			
