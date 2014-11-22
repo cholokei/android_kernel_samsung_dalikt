@@ -3868,13 +3868,6 @@ static void __init msm8x60_init_dsps(void)
 #define MSM_FB_SIZE roundup((roundup((736 * 1280 * 4), 4096) * 3), 4096)
 #endif /*CONFIG_FB_MSM_HDMI_MSM_PANEL*/
 
-#ifndef CONFIG_SEC_KERNEL_REBASE_FOR_PMEM_OPTIMIZATION
-#define MSM_PMEM_ADSP_SIZE         0x4200000
-#else
-#define MSM_PMEM_ADSP_BASE         0x40400000
-#define MSM_PMEM_ADSP_SIZE         0x02A00000 /* 42MB */
-#endif
-
 #define MSM_SMI_BASE          0x38000000
 #define MSM_SMI_SIZE          0x4000000
 
@@ -9511,11 +9504,7 @@ struct ion_platform_heap msm8x60_heaps [] = {
 			.type	= ION_HEAP_TYPE_CARVEOUT,
 			.name	= ION_CAMERA_HEAP_NAME,
 			.size	= MSM_ION_CAMERA_SIZE,
-#ifdef CONFIG_SEC_KERNEL_REBASE_FOR_PMEM_OPTIMIZATION
-			.memory_type = ION_ADSP_TYPE,
-#else
 			.memory_type = ION_EBI_TYPE,
-#endif
 			.extra_data = &co_ion_pdata,
 		},
 #ifdef CONFIG_QSEECOM
@@ -9558,13 +9547,6 @@ static struct memtype_reserve msm8x60_reserve_table[] __initdata = {
 		.limit	=	MSM_SMI_SIZE,
 		.flags	=	MEMTYPE_FLAGS_FIXED,
 	},
-#ifdef CONFIG_SEC_KERNEL_REBASE_FOR_PMEM_OPTIMIZATION
-	[MEMTYPE_PMEM_ADSP] = {
-		.start	=	MSM_PMEM_ADSP_BASE,
-		.limit	=	MSM_PMEM_ADSP_SIZE,
-		.flags	=	MEMTYPE_FLAGS_FIXED,
-	},
-#endif
 	[MEMTYPE_EBI0] = {
 		.flags	=	MEMTYPE_FLAGS_1M_ALIGN,
 	},
@@ -9576,11 +9558,7 @@ static struct memtype_reserve msm8x60_reserve_table[] __initdata = {
 static void __init reserve_ion_memory(void)
 {
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_SF_SIZE;
-#ifndef CONFIG_SEC_KERNEL_REBASE_FOR_PMEM_OPTIMIZATION
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_CAMERA_SIZE;
-#else
-	msm8x60_reserve_table[MEMTYPE_PMEM_ADSP].size += MSM_ION_CAMERA_SIZE;
-#endif
 #ifdef CONFIG_QSEECOM
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_QSECOM_SIZE;
 #endif
@@ -9604,11 +9582,7 @@ static void __init msm8x60_calculate_reserve_sizes(void)
 
 static int msm8x60_paddr_to_memtype(unsigned int paddr)
 {
-#if defined (CONFIG_SEC_KERNEL_REBASE_FOR_PMEM_OPTIMIZATION)
-	if (paddr >= 0x40000000 && paddr < 0x80000000)
-#else
 	if (paddr >= 0x40000000 && paddr < 0x60000000)
-#endif
 		return MEMTYPE_EBI1;
 	if (paddr >= 0x38000000 && paddr < 0x40000000)
 		return MEMTYPE_SMI;
